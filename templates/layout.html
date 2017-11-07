@@ -1,0 +1,13 @@
+{# _myapp/templates/layout.html_ #}
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>{% block title %}{% endblock %}</title>
+    </head>
+    <body>
+    {% block body %}
+        <h1>This heading is defined in the parent.</h1>
+    {% endblock %}
+    </body>
+</html>
