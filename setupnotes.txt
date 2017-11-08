@@ -1,0 +1,47 @@
+Apache setup for flask apps
+ - the app is stored in var/www/<app name>
+ - a wsgi file is stored as var/www/<app name>/<app name>.wsgi
+
+<app name>.wsgi
+	import sys
+	sys.path.append('/home/ubuntu/<app name>')
+	sys.path.append('/home/ubuntu')
+
+	from app import app as application
+<end>
+
+the from app has to refer to the app object in your app
+
+
+add the below to etc/apache2/apache2.conf
+
+<Directory /var/www>
+        Order allow,deny
+        Allow from all
+        <Files "<app name>.wsgi">
+                Require all granted
+        </Files>
+</Directory>
+
+
+rewrite /etc/apache2/sites-available/000-default.conf
+
+<virtualhost *:80>
+    ServerName cartoforum
+
+    WSGIDaemonProcess cartoforum python-path=/var/www/cartoforum
+    WSGIScriptAlias / /var/www/cartoforum/cartoforum.wsgi \
+        process-group=cartoforum application-group=%{GLOBAL}
+
+    <directory /var/www/cartoforum>
+        WSGIProcessGroup cartoforum
+        WSGIApplicationGroup %{GLOBAL}
+        WSGIScriptReloading On
+        Order deny,allow
+        Allow from all
+    </directory>
+</virtualhost>
+
+
+
+
