@@ -56,27 +56,18 @@
 <a href="#" class = "closeWindow" onclick = "$( '#forgotPassword' ).hide( 'fast' )">x</a>
 <form method = "POST" action = "account/getpassword.php">
 <input type = "text" name = "email" placeholder = "enter your email"><br>
-<?php
-echo "<img id = 'captcha' src = '../secureimage/securimage/securimage_show.php' alt='CAPTCHA Image' />\n";
-echo "<input type = 'button' class = 'btn wbtn' value = 'different image' onclick='document.getElementById(\"captcha\").src = \"../secureimage/securimage/securimage_show.php?\" + Math.random(); return false'><br>\n";
-echo "<input type='text' placeholder = 'enter code' name='captcha_code' size='10' maxlength='6' /><br>\n";
-?>
+
 <input type = "submit" class = 'wbtn btn' value = "reset my password">
 </form>
 </div>
 <div id = "description">
-<?php
-if ($_GET["createacct"]) echo "account created, login with your username and password";
-else if ($_GET["emailsent"]) echo "your temporary password has been emailed to you";
-else if ($_GET["login"] == "false") echo "there's something wrong with your login";
-else echo "cartoforum is an online forum to link your conversation to location.<br><br>It's free to use. Start an account, create a group and invite people to your conversation.";
-?>
+
 </div>
 <img class = "torontoimg" src = "images/torontimg.jpg" />
 <h1 style = "width: 100%; text-align: center; padding-top: 40px;">- Examples -</h1>
 <div id = "examples">
-<a href = "https://cartoforum.com/discovery/map.php?groupname=3"><img class = "exampleimg" src = "images/parkdale411.png"></a>
-<a href = "https://cartoforum.com/bikelanes"><img class = "exampleimg" src = "images/bikelanesTO.png"></a>
+<a href = "https://cartoforum.com/discovery/map.php?groupname=3"><img class = "exampleimg" src = "{{ url_for('static', filename='images/parkdale411.png') }}"></a>
+<a href = "https://cartoforum.com/bikelanes"><img class = "exampleimg" src = "{{ url_for('static', filename='images/bikelanesTO.png') }}"></a>
 </div>
 <h1 style = "width: 100%; text-align: center; padding-top: 50px;">- Tips -</h1>
 <p style = "width: 100%; text-align: center;">
