@@ -37,12 +37,18 @@
 </div>
 <h1 id = "title">cartoforum</h1>
 <a id = "twittersignin" href = "https://cartoforum.com/twitteroauth/twitter_login.php"><img src = "https://g.twimg.com/dev/sites/default/files/images_documentation/sign-in-with-twitter-gray.png"></a>
-<form id = "loginform" method = "POST" action = "group_select.php">
-<input type = "text" name = "username" placeholder = "username">
+    {% block body %}
+    {% if session['logged_in'] %}
+    <p>already logged in</p>
+    {% else %}
+    <form id = "loginform" method = "POST" action = "/login">
+    <input type = "username" name = "username" placeholder = "username">
 <br>
 <input type = "password" name = "password" placeholder = "password">
 <input type = "submit" class = 'bbtn btn' value = "login">
 </form>
+    {% endif %}
+    {% endblock %}
 </header>
 <div id = "content">
 <div id = "createAccount">
