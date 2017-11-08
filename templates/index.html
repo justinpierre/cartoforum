@@ -1,93 +1,90 @@
 <!DOCTYPE HTML>
 <html>
-<head>
-<title>cartoforum</title>
-<meta name="description" content="Argoomap or Cartoforum is an online forum to link your conversation to location">
-<meta name="keywords" content="argumentation map,GIS,mapchat,argoomap,cartotalk,cartoforum,mapping,online mapping,web GIS,MSA,spatial,forum">
-<meta name="author" content="Justin Pierre">
+    <head>
+        <title>cartoforum</title>
+        <meta name="description" content="Argoomap or Cartoforum is an online forum to link your conversation to location">
+        <meta name="keywords" content="argumentation map,GIS,mapchat,argoomap,cartotalk,cartoforum,mapping,online mapping,web GIS,MSA,spatial,forum">
+        <meta name="author" content="Justin Pierre">
 
-<script src="https://code.jquery.com/jquery-3.2.1.min.js"
-            integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
-  crossorigin="anonymous"></script>
-    <script type=text/javascript>
-  $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-</script>
-<script type="text/javascript" src="{{ url_for('static', filename='javascript/index.js') }}"></script></head>
+        <script src="https://code.jquery.com/jquery-3.2.1.min.js"
+                    integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+          crossorigin="anonymous"></script>
+            <script type=text/javascript>
+          $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+        </script>
+        <script type="text/javascript" src="{{ url_for('static', filename='javascript/index.js') }}"></script></head>
 
-<script>
-  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
-  ga('create', 'UA-15289149-2', 'auto');
-  ga('send', 'pageview');
+          ga('create', 'UA-15289149-2', 'auto');
+          ga('send', 'pageview');
 
-    img1 = new Image();
-    img1.src = "{{ url_for('static', filename='images/torontimg.jpg') }}";
-</script>
-<link rel="stylesheet" href = "{{ url_for('static', filename='styles/index.css') }}" type = "text/css">
-</head>
-<body>
+            img1 = new Image();
+            img1.src = "{{ url_for('static', filename='static/images/torontimg.jpg') }}";
+        </script>
+        <link rel="stylesheet" href = "{{ url_for('static', filename='styles/index.css') }}" type = "text/css">
+    </head>
+    <body>
+        <header id = "loginbar">
+            <div id = "topbuttons">
+                <input type = "button" class = "wbtn" value = "sign up" onClick = "showAcctDiv()">
+                <input type = "button" class = "wbtn" value = "forgot password" onClick = "showPwDiv()">
+            </div>
+            <h1 id = "title">cartoforum</h1>
+            <a id = "twittersignin" href = "https://cartoforum.com/twitteroauth/twitter_login.php"><img src = "https://g.twimg.com/dev/sites/default/files/images_documentation/sign-in-with-twitter-gray.png"></a>
+            {% block body %}
+            {% if session['logged_in'] %}
+            <p>already logged in</p>
+            {% else %}
+            <form id = "loginform" method = "POST" action = "/login">
+                <input type = "username" name = "username" placeholder = "username">
+                <br>
+                <input type = "password" name = "password" placeholder = "password">
+                <input type = "submit" class = 'bbtn btn' value = "login">
+            </form>
+                {% endif %}
+                {% endblock %}
+        </header>
+        <div id = "content">
+            <div id = "createAccount">
+                <a href="#" class = "closeWindow" onclick = "$( '#createAccount' ).hide( 'fast' )">x</a>
+                <form method = "POST" action = "account/create_account.php">
+                <input type = "text" name = "username" size = "30" placeholder = "What username do you want?"><br>
+                <input type = "submit" class = 'wbtn btn' value = "create">
+                </form>
+            </div>
+            <div id = "forgotPassword">
+                <a href="#" class = "closeWindow" onclick = "$( '#forgotPassword' ).hide( 'fast' )">x</a>
+                <form method = "POST" action = "account/getpassword.php">
+                    <input type = "text" name = "email" placeholder = "enter your email"><br>
+                    <input type = "submit" class = 'wbtn btn' value = "reset my password">
+                </form>
+            </div>
+            <div id = "description">
+            </div>
+            <img class = "torontoimg" src = "images/torontimg.jpg" />
+            <h1 style = "width: 100%; text-align: center; padding-top: 40px;">- Examples -</h1>
+            <div id = "examples">
+                <a href = "https://cartoforum.com/discovery/map.php?groupname=3"><img class = "exampleimg" src = "{{ url_for('static', filename='images/parkdale411.png') }}"></a>
+                <a href = "https://cartoforum.com/bikelanes"><img class = "exampleimg" src = "{{ url_for('static', filename='images/bikelanesTO.png') }}"></a>
+            </div>
+            <h1 style = "width: 100%; text-align: center; padding-top: 50px;">- Tips -</h1>
+            <p style = "width: 100%; text-align: center;">
+                <a href = "http://blog.justinpierre.ca/index.php/8-cartoforum/4-adding-data-to-your-group-as-administrator">Adding a bunch of data to your group at once</a>
+            </p>
+            <h1 style = "width: 100%; text-align: center; padding-top: 50px;">- Mentions -</h1>
+                <p style = "width: 100%; text-align: center;">
+                <a href = "http://torontoist.com/2016/02/2016-cycling-preview/">http://torontoist.com/2016/02/2016-cycling-preview/</a>
+            </p>
+        </div>
+        <footer>
+            </span>
+            <span style = "float: right; padding-top: 4px;">Created by <a href = "https://twitter.com/jpierre001">Justin Pierre</a></span>
+        </footer>
 
-<header id = "loginbar">
-<div id = "topbuttons">
-<input type = "button" class = "wbtn" value = "sign up" onClick = "showAcctDiv()">
-<input type = "button" class = "wbtn" value = "forgot password" onClick = "showPwDiv()">
-</div>
-<h1 id = "title">cartoforum</h1>
-<a id = "twittersignin" href = "https://cartoforum.com/twitteroauth/twitter_login.php"><img src = "https://g.twimg.com/dev/sites/default/files/images_documentation/sign-in-with-twitter-gray.png"></a>
-    {% block body %}
-    {% if session['logged_in'] %}
-    <p>already logged in</p>
-    {% else %}
-    <form id = "loginform" method = "POST" action = "/login">
-    <input type = "username" name = "username" placeholder = "username">
-<br>
-<input type = "password" name = "password" placeholder = "password">
-<input type = "submit" class = 'bbtn btn' value = "login">
-</form>
-    {% endif %}
-    {% endblock %}
-</header>
-<div id = "content">
-<div id = "createAccount">
-<a href="#" class = "closeWindow" onclick = "$( '#createAccount' ).hide( 'fast' )">x</a>
-<form method = "POST" action = "account/create_account.php">
-<input type = "text" name = "username" size = "30" placeholder = "What username do you want?"><br>
-<input type = "submit" class = 'wbtn btn' value = "create">
-</form>
-</div>
-<div id = "forgotPassword">
-<a href="#" class = "closeWindow" onclick = "$( '#forgotPassword' ).hide( 'fast' )">x</a>
-<form method = "POST" action = "account/getpassword.php">
-<input type = "text" name = "email" placeholder = "enter your email"><br>
-
-<input type = "submit" class = 'wbtn btn' value = "reset my password">
-</form>
-</div>
-<div id = "description">
-
-</div>
-<img class = "torontoimg" src = "images/torontimg.jpg" />
-<h1 style = "width: 100%; text-align: center; padding-top: 40px;">- Examples -</h1>
-<div id = "examples">
-<a href = "https://cartoforum.com/discovery/map.php?groupname=3"><img class = "exampleimg" src = "{{ url_for('static', filename='images/parkdale411.png') }}"></a>
-<a href = "https://cartoforum.com/bikelanes"><img class = "exampleimg" src = "{{ url_for('static', filename='images/bikelanesTO.png') }}"></a>
-</div>
-<h1 style = "width: 100%; text-align: center; padding-top: 50px;">- Tips -</h1>
-<p style = "width: 100%; text-align: center;">
-<a href = "http://blog.justinpierre.ca/index.php/8-cartoforum/4-adding-data-to-your-group-as-administrator">Adding a bunch of data to your group at once</a>
-</p>
-<h1 style = "width: 100%; text-align: center; padding-top: 50px;">- Mentions -</h1>
-<p style = "width: 100%; text-align: center;">
-<a href = "http://torontoist.com/2016/02/2016-cycling-preview/">http://torontoist.com/2016/02/2016-cycling-preview/</a>
-</p>
-</div>
-<footer>
-</span>
-<span style = "float: right; padding-top: 4px;">Created by <a href = "https://twitter.com/jpierre001">Justin Pierre</a></span>
-</footer>
-
-</body>
+    </body>
 </html>
