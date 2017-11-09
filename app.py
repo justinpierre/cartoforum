@@ -1,5 +1,6 @@
 from flask import Flask
 from flask import render_template, jsonify, flash, redirect, request, session, abort
+import psycopg2
 
 app = Flask(__name__)
 
