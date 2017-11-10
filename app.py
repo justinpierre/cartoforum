@@ -4,12 +4,16 @@ __author__ = u'justinpierre'
 
 from flask import Flask
 from flask import render_template, jsonify, flash, redirect, request, session, abort
+from flask import Session
+
 import psycopg2
 import hashlib
 import config
 
 app = Flask(__name__)
-
+sess = Session()
+app.secret_key = config.secret_key
+app.config['SESSION_TYPE'] = 'filesystem'
 
 @app.route('/')
 def index():
@@ -39,9 +43,9 @@ def do_login():
     response = cur.fetchall()
     for row in response:
         m = hashlib.sha256()
-        m.update(request.form['password'])
-        m.digest()
-        if row[1] == '\\x{}'.format(m):
+        m.update(request.form['password'].encode("utf-8"))
+        hashpwd = m.hexdigest()
+        if row[1] == '\\x{}'.format(hashpwd):
             session['logged_in'] = True
             session['userid'] = row[0]
         else:
@@ -51,5 +55,4 @@ def do_login():
 
 
 if __name__ == '__main__':
-    app.secret_key = config.secret_key
     app.run()
