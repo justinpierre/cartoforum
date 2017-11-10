@@ -1,89 +1,87 @@
 <!DOCTYPE HTML>
 <html>
-<head>
-<title>cartoforum group select</title>
-<link rel="stylesheet" href = "{{ url_for('static', filename='styles/index.css') }}" type = "text/css">
-<link rel="stylesheet" href = "{{ url_for('static', filename='ol3/v3.1.1/css/ol.css') }}" type = "text/css">
-<script src = "{{ url_for('static', filename='ol3/v3.1.1/build/ol.js') }}" type = "text/javascript"></script>
-        <script src="https://code.jquery.com/jquery-3.2.1.min.js"
-                    integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
-          crossorigin="anonymous"></script>
-	<script type=text/javascript>$SCRIPT_ROOT = {{ request.script_root|tojson|safe }}</script>
-<script src="{{ url_for('static', filename='javascript/index.js') }}"></script>
-</head>
-<body onload="getUserGroups()">
-<header id = "loginbar">
-<h1 id = "title">cartoforum</h1>
-<form method = "POST" action = "index2.php" style = "float: right;">
-<input type = "submit" class = "btn bbtn" value = "Discovery Map">
-</form>
-</header>
-<div id = "content">
-<div id = "description">
-<br>
-<input type = "button" class = "btn wbtn" value = "Create a Group" onClick = "makeNewGroup()" /><br>
-<div id = "newGroup">
-<form method = "POST" action = "serverops/createGroup.php">
-<input type = "text" placeholder = "Group Name" name = "groupName"><br>
-Do you want anyone to be able to join your group?
-<br><input type="checkbox" name = "opengroup">Yes<br><br>
-Set boundaries for the group (optional):
-<div id = "map">
-</div>
-<input type = "hidden" length = "100" id = "bounds" name = "bounds">
-<br>
-<input type = "hidden" name = "userid" value = "<?php echo $userid ?>">
-<input type = "submit" class = "btn bbtn" value = "Create">
-</form>
-</div> <!--newGroup-->
-<div id = "invites">
-<?php
-$query = "SELECT grouprequests.requestid, users.username, groups.groupname, grouprequests.dateissued FROM grouprequests INNER JOIN users ON users.userid = grouprequests.requester JOIN groups ON groups.groupid = grouprequests.groupid  WHERE complete = false AND invitee = " . $userid . ";";
-$result = pg_query($dbconn, $query);
-if (!$result) echo $username . " doesn't have any invites.";
-while ($row = pg_fetch_row($result)) {
-	echo "<br>";
-	echo $row[1] . " has invited you to the group " . $row[2] . " (" . $row[3] . ")";
-	echo "<form method = 'POST' action = 'accept.php'>";
-	echo "<input type = 'hidden' name = 'requestid' value = '" . $row[0] . "'>";
-	echo "<input type = 'submit' value = 'accept'></form>";
-	echo "<form method = 'POST' action = 'decline.php'>";	
-	echo "<input type = 'hidden' name = 'requestid' value = '" . $row[0] . "'>";
-        echo "<input type = 'submit' value = 'decline'></form>";
-}
-$query = "SELECT inviteme.requestid, users.username, groups.groupname, groups.groupid, inviteme.date FROM inviteme INNER JOIN users ON users.userid = inviteme.userid JOIN groups ON groups.groupid = inviteme.groupid  WHERE accepted is null AND groups.userid = " . $userid . ";";
-$result = pg_query($dbconn, $query);
-while ($row = pg_fetch_row($result)) {
-	echo "<br>";
-	echo $row[1] . " has requested an invite to the group " . $row[2] . " (" . $row[4] . ")";
-	echo "<form method = 'POST' action = 'invite.php' class = 'invite'>";
-	echo "<input type = 'hidden' name = 'groupid' value = '" . $row[2] . "'>";
-	echo "<input type = 'hidden' name = 'invitee' value = '" . $row[1] . "'>";
-        echo "<input type = 'submit' class = 'btn wbtn' value = 'send invite'></form>\n";
-        echo "<form method = 'POST' action = 'declineinviterequest.php' class = 'invite'>";
-	echo "<input type = 'hidden' name = 'groupid' value = '" . $row[2] . "'>";
-	echo "<input type = 'hidden' name = 'invitee' value = '" . $row[1] . "'>";
-        echo "<input type = 'submit' class = 'btn wbtn' value = 'decline'></form>\n";
-}
-?>
+	<head>
+		<title>cartoforum group select</title>
+		<link rel="stylesheet" href = "{{ url_for('static', filename='styles/index.css') }}" type = "text/css">
+		<link rel="stylesheet" href = "{{ url_for('static', filename='ol3/v3.1.1/css/ol.css') }}" type = "text/css">
+		<script src = "{{ url_for('static', filename='ol3/v3.1.1/build/ol.js') }}" type = "text/javascript"></script>
+			<script src="https://code.jquery.com/jquery-3.2.1.min.js"
+			integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+			crossorigin="anonymous"></script>
+		<script type=text/javascript>$SCRIPT_ROOT = {{ request.script_root|tojson|safe }}</script>
+		<script src="{{ url_for('static', filename='javascript/index.js') }}"></script>
+	</head>
+	<body onload="getUserGroups()">
+		<header id = "loginbar">
+			<h1 id = "title">cartoforum</h1>
+			<input type = "submit" class = "btn bbtn" value = "Discovery Map" onclick = "goToDisc()">
+		</header>
+		<div id = "content">
+			<div id = "description">
+				<br>
+				<input type = "button" class = "btn wbtn" value = "Create a Group" onClick = "makeNewGroup()" /><br>
+				<div id = "newGroup">
+					<form method = "POST" action = "serverops/createGroup.php">
+					<input type = "text" placeholder = "Group Name" name = "groupName"><br>
+					Do you want anyone to be able to join your group?
+					<br><input type="checkbox" name = "opengroup">Yes<br><br>
+					Set boundaries for the group (optional):
+					<div id = "map">
+					</div>
+					<input type = "hidden" length = "100" id = "bounds" name = "bounds">
+					<br>
+					<input type = "hidden" name = "userid" value = "<?php echo $userid ?>">
+					<input type = "submit" class = "btn bbtn" value = "Create">
+					</form>
+				</div> <!--newGroup-->
+				<div id = "invites">
+				<?php
+				$query = "SELECT grouprequests.requestid, users.username, groups.groupname, grouprequests.dateissued FROM grouprequests INNER JOIN users ON users.userid = grouprequests.requester JOIN groups ON groups.groupid = grouprequests.groupid  WHERE complete = false AND invitee = " . $userid . ";";
+				$result = pg_query($dbconn, $query);
+				if (!$result) echo $username . " doesn't have any invites.";
+				while ($row = pg_fetch_row($result)) {
+					echo "<br>";
+					echo $row[1] . " has invited you to the group " . $row[2] . " (" . $row[3] . ")";
+					echo "<form method = 'POST' action = 'accept.php'>";
+					echo "<input type = 'hidden' name = 'requestid' value = '" . $row[0] . "'>";
+					echo "<input type = 'submit' value = 'accept'></form>";
+					echo "<form method = 'POST' action = 'decline.php'>";
+					echo "<input type = 'hidden' name = 'requestid' value = '" . $row[0] . "'>";
+						echo "<input type = 'submit' value = 'decline'></form>";
+				}
+				$query = "SELECT inviteme.requestid, users.username, groups.groupname, groups.groupid, inviteme.date FROM inviteme INNER JOIN users ON users.userid = inviteme.userid JOIN groups ON groups.groupid = inviteme.groupid  WHERE accepted is null AND groups.userid = " . $userid . ";";
+				$result = pg_query($dbconn, $query);
+				while ($row = pg_fetch_row($result)) {
+					echo "<br>";
+					echo $row[1] . " has requested an invite to the group " . $row[2] . " (" . $row[4] . ")";
+					echo "<form method = 'POST' action = 'invite.php' class = 'invite'>";
+					echo "<input type = 'hidden' name = 'groupid' value = '" . $row[2] . "'>";
+					echo "<input type = 'hidden' name = 'invitee' value = '" . $row[1] . "'>";
+						echo "<input type = 'submit' class = 'btn wbtn' value = 'send invite'></form>\n";
+						echo "<form method = 'POST' action = 'declineinviterequest.php' class = 'invite'>";
+					echo "<input type = 'hidden' name = 'groupid' value = '" . $row[2] . "'>";
+					echo "<input type = 'hidden' name = 'invitee' value = '" . $row[1] . "'>";
+						echo "<input type = 'submit' class = 'btn wbtn' value = 'decline'></form>\n";
+				}
+				?>
 
 
-</div>
-</div>
-</div>
-<footer>
-<span style = "padding-left: 80px;"><?php echo $username ?>
+				</div>
+			</div>
+		</div>
+		<footer>
+		<span style = "padding-left: 80px;"><?php echo $username ?>
 
-<a href = "#" id = "settings" onclick = "$( 'div#settings-options' ).show('fast')"><img id = "settings" src="images/settings.png"></a>
-<div id="settings-options">
-<a href = "account/passwordreset.php">password reset</a>
-</div>
+		<a href = "#" id = "settings" onclick = "$( 'div#settings-options' ).show('fast')"><img id = "settings" src="images/settings.png"></a>
+		<div id="settings-options">
+		<a href = "account/passwordreset.php">password reset</a>
+		</div>
 
-<form class = "inlineform" action = "logout.php" method = "POST">
-<input type = "submit" class = "btn bbtn" value = "Logout" />
-</form>
-<span style = "float: right;  padding-top: 4px;">Created by <a href = "https://twitter.com/jpierre001">Justin Pierre</a></span>
-</footer>
+		<form class = "inlineform" action = "logout.php" method = "POST">
+		<input type = "submit" class = "btn bbtn" value = "Logout" />
+		</form>
+		<span style = "float: right;  padding-top: 4px;">Created by <a href = "https://twitter.com/jpierre001">Justin Pierre</a></span>
+		</footer>
 
-</body>
+	</body>
 </html>

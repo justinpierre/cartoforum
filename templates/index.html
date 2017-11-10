@@ -22,7 +22,7 @@
           ga('send', 'pageview');
 
             img1 = new Image();
-            img1.src = "{{ url_for('static', filename='static/images/torontimg.jpg') }}";
+            img1.src = "{{ url_for('static', filename='images/torontimg.jpg') }}";
         </script>
         <link rel="stylesheet" href = "{{ url_for('static', filename='styles/index.css') }}" type = "text/css">
     </head>
@@ -64,7 +64,7 @@
             </div>
             <div id = "description">
             </div>
-            <img class = "torontoimg" src = "images/torontimg.jpg" />
+            <img class = "torontoimg" src = "{{ url_for('static', filename='styles/index.css') }}" />
             <h1 style = "width: 100%; text-align: center; padding-top: 40px;">- Examples -</h1>
             <div id = "examples">
                 <a href = "https://cartoforum.com/discovery/map.php?groupname=3"><img class = "exampleimg" src = "{{ url_for('static', filename='images/parkdale411.png') }}"></a>

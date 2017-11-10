@@ -126,7 +126,7 @@ function getUserGroups() {
     $.getJSON($SCRIPT_ROOT + '/_get_user_groups',
     function(data) {
         if (data.groups.length == 0) {
-            $("#description").html("You don't belong to any groups yet.<br><br>");
+            $("#description").append("You don't belong to any groups yet.<br><br>");
             $("#description").append("check out the ");
             $("#description").append("<input type = 'button' value = 'Discovery Map' onclick = 'goToDisc()'");
             $("#description").append(" for some inspiration");
@@ -154,8 +154,16 @@ function getUserGroups() {
                 }
             }
         }
+    })
+    getUserInvites();
+ }
+
+function getUserInvites() {
+    $.getJSON($SCRIPT_ROOT + '/_get_user_invites',
+    function(data) {
+
     }
-) }
+}
 
 function goToGroup(groupid) {
     data = {}
@@ -165,6 +173,18 @@ function goToGroup(groupid) {
         url: $SCRIPT_ROOT + '/_go_to_group',
         type: 'POST',
         data: data,
+        contentType: 'application/json;charset=UTF-8',
+        cache: false,
+        succes: function (response) {
+            console.log(response)
+        }
+    })
+}
+
+function goToDisc() {
+    #.ajax({
+        url: $SCRIPT_ROOT + '/_go_to_disc',
+        type: 'POST',
         contentType: 'application/json;charset=UTF-8',
         cache: false,
         succes: function (response) {
