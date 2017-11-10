@@ -125,7 +125,7 @@ if (r == true) {
 function getUserGroups() {
     $.getJSON($SCRIPT_ROOT + '/_get_user_groups',
     function(data) {
-       $("#description").text(data.groups)
+       $("#description").html(data.groups)
      }
      )
  }
