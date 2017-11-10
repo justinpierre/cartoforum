@@ -41,7 +41,7 @@ def do_login():
         m = hashlib.sha256()
         m.update(request.form['password'])
         m.digest()
-        if row[1] == '\x{}'.format(m):
+        if row[1] == '\\x{}'.format(m):
             session['logged_in'] = True
             session['userid'] = row[0]
         else:
