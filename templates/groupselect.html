@@ -2,11 +2,13 @@
 <html>
 <head>
 <title>cartoforum group select</title>
-<link rel="stylesheet" href = "styles/index.css" type = "text/css">
-<link rel="stylesheet" href = "ol3/v3.1.1/css/ol.css" type = "text/css">
-<script src = "ol3/v3.1.1/build/ol.js" type = "text/javascript"></script>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-<script src="javascript/index.js"></script>
+<link rel="stylesheet" href = "{{ url_for('static', filename='styles/index.css') }}" type = "text/css">
+<link rel="stylesheet" href = "{{ url_for('static', filename='ol3/v3.1.1/css/ol.css') }}" type = "text/css">
+<script src = "{{ url_for('static', filename='ol3/v3.1.1/build/ol.js') }}" type = "text/javascript"></script>
+        <script src="https://code.jquery.com/jquery-3.2.1.min.js"
+                    integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+          crossorigin="anonymous"></script>
+<script src="{{ url_for('static', filename='javascript/index.js') }}"></script>
 </head>
 <body>
 <header id = "loginbar">
@@ -16,7 +18,7 @@
 </form>
 </header>
 <div id = "content">
-<div id = "description">
+<div id = "description" onload = 'getUserGroups()'>
 <?php
 $query = "SELECT groupname, groups.userid, groups.groupid FROM groups INNER JOIN usersgroups on groups.GroupID = usersgroups.GroupID WHERE usersgroups.UserID = " . $userid . ";";  
 

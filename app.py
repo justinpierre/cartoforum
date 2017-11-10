@@ -50,8 +50,25 @@ def do_login():
             session['userid'] = row[0]
         else:
             flash('wrong password')
-
+    cur.close
     return index()
+
+@app.route('/_get_user_groups', methods=['GET'])
+def get_user_groups():
+    try:
+        pgconnect = psycopg2.connect(database = config.dbname, user=config.dbusername,
+                                 password=config.dbpassword, host='localhost',port=config.dbport)
+    except:
+        print ("no connection")
+    groups = []
+    cur = pgconnect.cursor()
+    cur.execute("SELECT groupname, groups.userid, groups.groupid FROM groups INNER JOIN usersgroups on "
+                "groups.GroupID = usersgroups.GroupID "
+                "WHERE usersgroups.UserID = {}".format(session['userid']))
+    response = cur.fetchall()
+    for row in response:
+        groups.append(row[0])
+    return jsonify(groups = groups)
 
 
 if __name__ == '__main__':
