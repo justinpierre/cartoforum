@@ -20,34 +20,6 @@
 </header>
 <div id = "content">
 <div id = "description">
-<?php
-$query = "SELECT groupname, groups.userid, groups.groupid FROM groups INNER JOIN usersgroups on groups.GroupID = usersgroups.GroupID WHERE usersgroups.UserID = " . $userid . ";";  
-
-$result = pg_query($dbconn, $query);
-if (pg_numrows($result) == 0) {
-  echo $username . " doesn't belong to any groups yet.<br><br>";
-  echo "check out the ";
-  echo "<form method = 'POST' action = 'index2.php' style = 'display: inline'>";
-  echo "<input type = 'submit' class = 'btn bbtn' value = 'Discovery Map'>";
-  echo "</form>";
-  echo " for some inspiration";
-}
-else echo $username . "'s groups:";
-echo "<br>";
-echo "<table>";
-while ($row = pg_fetch_row($result)) {
-	echo "<tr><td><form method = 'POST' action = 'map.php' style = 'display:inline;'>";
-	echo "<input type = 'submit' class = 'btn  bbtn' name = 'groupname' value = '" . $row[0] . "'>";
-	echo "</form></td>";
-	if ($row[1] == $userid) {
-		echo "</td><td>\n";
-		echo "</td><td><a href = 'groupadmin.php?g=" . $row[2] . "' style = 'text-decoration: none'><input type = 'button' class = 'btn wbtn' value = 'admin'></a></td>";
-	} 
-        else echo "<td cols=3></td>";
-       echo "</tr>\n";
-}
-	echo "</table><br>\n";
-?>
 <br>
 <input type = "button" class = "btn wbtn" value = "Create a Group" onClick = "makeNewGroup()" /><br>
 <div id = "newGroup">

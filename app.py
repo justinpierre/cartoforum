@@ -67,9 +67,22 @@ def get_user_groups():
                 "WHERE usersgroups.UserID = {}".format(session['userid']))
     response = cur.fetchall()
     for row in response:
-        groups.append({"name": row[0], "groupid": row[2], "admin": row[1]})
+        if row[1] == session['userid']:
+            groups.append({"name": row[0], "groupid": row[2], "admin": True})
+        else:
+            groups.append({"name": row[0], "groupid": row[2], "admin": False})
     return jsonify(groups = groups)
 
+
+@app.route('/_go_to_group', methods=['POST'])
+def go_to_group():
+    data = request.json
+    groupid = data['group']
+    # Check for group membership
+    return render_template('map.html',
+                           groupid=groupid,
+                           userid=session['userid']
+                        )
 
 if __name__ == '__main__':
     app.run()

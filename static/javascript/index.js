@@ -125,11 +125,50 @@ if (r == true) {
 function getUserGroups() {
     $.getJSON($SCRIPT_ROOT + '/_get_user_groups',
     function(data) {
-        console.log(data.groups);
-        for (var i=0; i < data.groups.length; i++) {
-            $("#description").append("<p>"+data.groups[i]['name']+"</p>");
+        if (data.groups.length == 0) {
+            $("#description").html("You don't belong to any groups yet.<br><br>");
+            $("#description").append("check out the ");
+            $("#description").append("<input type = 'button' value = 'Discovery Map' onclick = 'goToDisc()'");
+            $("#description").append(" for some inspiration");
+        }
+        else {
+            for (var i=0; i < data.groups.length; i++) {
+                var groupButton = $("<button/>",
+                {
+                    text: data.groups[i]['name']
+                    click: function() {
+                        goToGroup(data.groups[i]['groupid'])
+                    }
+                })
+                groupButton.addClass("btn bbtn")
+                $("#description").append(groupButton);
+                if (data.groups[i]['admin'] == 'True') {
+                    var adminButton = $("<button/>",
+                    {
+                        text: "admin"
+                        click: function() {
+                            goToAdmin(data.groups[i]['groupid'])
+                        }
+                    })
+                    groupButton.addClass("btn bbtn")
+                }
+            }
         }
     }
-    )
- }
+) }
 
+function goToGroup(groupid) {
+    data = {}
+    data['group'] = groupid;
+    data = JSON.stringify(data);
+    #.ajax({
+        url: $SCRIPT_ROOT + '/_go_to_group',
+        type: 'POST',
+        data: data,
+        contentType: 'application/json;charset=UTF-8',
+        cache: false,
+        succes: function (response) {
+            console.log(response)
+        }
+    })
+}
