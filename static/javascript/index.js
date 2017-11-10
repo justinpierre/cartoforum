@@ -125,8 +125,11 @@ if (r == true) {
 function getUserGroups() {
     $.getJSON($SCRIPT_ROOT + '/_get_user_groups',
     function(data) {
-       $("#description").html(data.groups)
-     }
-     )
+        console.log(data.groups);
+        for (var i=0; i < data.groups.length; i++) {
+            $("#description").append("<p>"+data.groups[i]['name']+"</p>");
+        }
+    }
+    )
  }
 

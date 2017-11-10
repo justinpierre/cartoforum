@@ -11,7 +11,7 @@
 	<script type=text/javascript>$SCRIPT_ROOT = {{ request.script_root|tojson|safe }}</script>
 <script src="{{ url_for('static', filename='javascript/index.js') }}"></script>
 </head>
-<body>
+<body onload="getUserGroups()">
 <header id = "loginbar">
 <h1 id = "title">cartoforum</h1>
 <form method = "POST" action = "index2.php" style = "float: right;">
@@ -19,7 +19,7 @@
 </form>
 </header>
 <div id = "content">
-<div id = "description" onload = 'getUserGroups()'>
+<div id = "description">
 <?php
 $query = "SELECT groupname, groups.userid, groups.groupid FROM groups INNER JOIN usersgroups on groups.GroupID = usersgroups.GroupID WHERE usersgroups.UserID = " . $userid . ";";  
 

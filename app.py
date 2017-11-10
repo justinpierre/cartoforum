@@ -67,7 +67,7 @@ def get_user_groups():
                 "WHERE usersgroups.UserID = {}".format(session['userid']))
     response = cur.fetchall()
     for row in response:
-        groups.append(row[0])
+        groups.append({"name": row[0], "groupid": row[2], "admin": row[1]})
     return jsonify(groups = groups)
 
 
