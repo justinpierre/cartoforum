@@ -6,6 +6,7 @@ from flask import Flask
 from flask import render_template, jsonify, flash, redirect, request, session, abort
 import psycopg2
 import hashlib
+import config
 
 app = Flask(__name__)
 
@@ -14,9 +15,9 @@ app = Flask(__name__)
 def index():
     content = u'Cartoforum'
     if not session.get('logged_in'):
-        return render_template('groupselect.html')
+        return render_template('index.html')
     else:
-        return render_template('index.html', content=content)
+        return render_template('groupselect.html', content=content)
 
 
 @app.route('/_jquerytest')
@@ -26,7 +27,6 @@ def jquerytest():
 
 @app.route('/login', methods=['POST'])
 def do_login():
-    import config
     try:
         pgconnect = psycopg2.connect(database = config.dbname, user=config.dbusername,
                                  password=config.dbpassword, host='localhost',port=config.dbport)
@@ -51,4 +51,5 @@ def do_login():
 
 
 if __name__ == '__main__':
+    app.secret_key = config.secret_key
     app.run()
