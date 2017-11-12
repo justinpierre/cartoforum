@@ -135,17 +135,18 @@ function getUserGroups() {
             for (var i=0; i < data.groups.length; i++) {
                 var groupButton = $("<button/>",
                 {
-                    text: data.groups[i]['name']
+                    text: data.groups[i]['name'],
+                    id: "groupid"+data.groups[i]['groupid'],
                     click: function() {
-                        goToGroup(data.groups[i]['groupid'])
+                        goToGroup(this.id)
                     }
                 })
-                groupButton.addClass("btn bbtn")
+                groupButton.addClass("btn bbtn");
                 $("#description").append(groupButton);
                 if (data.groups[i]['admin'] == 'True') {
                     var adminButton = $("<button/>",
                     {
-                        text: "admin"
+                        text: "admin",
                         click: function() {
                             goToAdmin(data.groups[i]['groupid'])
                         }
@@ -161,15 +162,37 @@ function getUserGroups() {
 function getUserInvites() {
     $.getJSON($SCRIPT_ROOT + '/_get_user_invites',
     function(data) {
-
-    }
+        for (var i=0; i < data.invites['invites'].length; i++) {
+                $("#invites").append(data.invites['invites'][i]['name'] + "has invited you to the group" + data.invites['invites'][i]
+                var groupButton = $("<button/>",
+                {
+                    text: data.groups[i]['name'],
+                    id: "groupid"+data.groups[i]['groupid'],
+                    click: function() {
+                        goToGroup(this.id)
+                    }
+                })
+                groupButton.addClass("btn bbtn");
+                $("#description").append(groupButton);
+                if (data.groups[i]['admin'] == 'True') {
+                    var adminButton = $("<button/>",
+                    {
+                        text: "admin",
+                        click: function() {
+                            goToAdmin(data.groups[i]['groupid'])
+                        }
+                    })
+                    groupButton.addClass("btn bbtn")
+                }
+            }
+    })
 }
 
 function goToGroup(groupid) {
     data = {}
     data['group'] = groupid;
     data = JSON.stringify(data);
-    #.ajax({
+    $.ajax({
         url: $SCRIPT_ROOT + '/_go_to_group',
         type: 'POST',
         data: data,
@@ -182,7 +205,7 @@ function goToGroup(groupid) {
 }
 
 function goToDisc() {
-    #.ajax({
+    $.ajax({
         url: $SCRIPT_ROOT + '/_go_to_disc',
         type: 'POST',
         contentType: 'application/json;charset=UTF-8',

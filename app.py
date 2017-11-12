@@ -106,7 +106,7 @@ def get_user_invites():
 def go_to_group():
     data = request.json
     groupid = data['group']
-    # Check for group membership
+    # Check for group membership, return group name and bounds and username
     return render_template('map.html',
                            groupid=groupid,
                            userid=session['userid']
