@@ -22,7 +22,7 @@
 				<br>
 				<input type = "button" class = "btn wbtn" value = "Create a Group" onClick = "makeNewGroup()" /><br>
 				<div id = "newGroup">
-					<form method = "POST" action = "serverops/createGroup.php">
+					<form method = "POST" action = "/createGroup">
 					<input type = "text" placeholder = "Group Name" name = "groupName"><br>
 					Do you want anyone to be able to join your group?
 					<br><input type="checkbox" name = "opengroup">Yes<br><br>
@@ -31,7 +31,6 @@
 					</div>
 					<input type = "hidden" length = "100" id = "bounds" name = "bounds">
 					<br>
-					<input type = "hidden" name = "userid" value = "<?php echo $userid ?>">
 					<input type = "submit" class = "btn bbtn" value = "Create">
 					</form>
 				</div> <!--newGroup-->
@@ -41,7 +40,7 @@
 		<footer>
 		<span style = "padding-left: 80px;"><?php echo $username ?>
 
-		<a href = "#" id = "settings" onclick = "$( 'div#settings-options' ).show('fast')"><img id = "settings" src="images/settings.png"></a>
+		<a href = "#" id = "settings" onclick = "$( 'div#settings-options' ).show('fast')"><img src="{{ url_for('static', filename='images/settings.png') }}"></a>
 		<div id="settings-options">
 		<a href = "account/passwordreset.php">password reset</a>
 		</div>
@@ -49,6 +48,7 @@
 		<form class = "inlineform" action = "logout.php" method = "POST">
 		<input type = "submit" class = "btn bbtn" value = "Logout" />
 		</form>
+		</span>
 		<span style = "float: right;  padding-top: 4px;">Created by <a href = "https://twitter.com/jpierre001">Justin Pierre</a></span>
 		</footer>
 

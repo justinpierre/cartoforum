@@ -14,7 +14,13 @@ app = Flask(__name__)
 sess = Session()
 app.secret_key = config.secret_key
 app.config['SESSION_TYPE'] = 'filesystem'
+try:
+    pgconnect = psycopg2.connect(database=config.dbname, user=config.dbusername,
+                                 password=config.dbpassword, host='localhost', port=config.dbport)
+except:
+    print("no connection")
 
+cur = pgconnect.cursor()
 
 @app.route('/')
 def index():
@@ -25,20 +31,8 @@ def index():
         return render_template('groupselect.html', content=content)
 
 
-@app.route('/_jquerytest')
-def jquerytest():
-    return jsonify('blerg')
-
-
 @app.route('/login', methods=['POST'])
 def do_login():
-    try:
-        pgconnect = psycopg2.connect(database=config.dbname, user=config.dbusername,
-                                     password=config.dbpassword, host='localhost', port=config.dbport)
-    except:
-        print("no connection")
-    cur = pgconnect.cursor()
-
     query = "SELECT userid, password FROM users WHERE username = '{}'".format(request.form['username'])
     cur.execute(query)
     response = cur.fetchall()
@@ -51,18 +45,13 @@ def do_login():
             session['userid'] = row[0]
         else:
             flash('wrong password')
+    pgconnect.commit()
     return index()
 
 
 @app.route('/_get_user_groups', methods=['GET'])
 def get_user_groups():
-    try:
-        pgconnect = psycopg2.connect(database=config.dbname, user=config.dbusername,
-                                     password=config.dbpassword, host='localhost', port=config.dbport)
-    except:
-        print("no connection")
     groups = []
-    cur = pgconnect.cursor()
     cur.execute("SELECT groupname, groups.userid, groups.groupid FROM groups INNER JOIN usersgroups on "
                 "groups.GroupID = usersgroups.GroupID "
                 "WHERE usersgroups.UserID = {}".format(session['userid']))
@@ -72,18 +61,13 @@ def get_user_groups():
             groups.append({"name": row[0], "groupid": row[2], "admin": True})
         else:
             groups.append({"name": row[0], "groupid": row[2], "admin": False})
+    pgconnect.commit()
     return jsonify(groups=groups)
 
 
 @app.route('/_get_user_invites', methods=['GET'])
 def get_user_invites():
-    try:
-        pgconnect = psycopg2.connect(database=config.dbname, user=config.dbusername,
-                                     password=config.dbpassword, host='localhost', port=config.dbport)
-    except:
-        print("no connection")
     invreq = {'invites': [], 'requests': []}
-    cur = pgconnect.cursor()
     cur.execute("SELECT grouprequests.requestid, users.username, groups.groupname, grouprequests.dateissued "
                 "FROM grouprequests INNER JOIN users ON users.userid = grouprequests.requester "
                 "JOIN groups ON groups.groupid = grouprequests.groupid  "
@@ -99,68 +83,12 @@ def get_user_invites():
     response = cur.fetchall()
     for row in response:
         invreq['requests'].append({"requestid": row[0], "requester": row[1], "group": [2], "date": row[3]})
+    pgconnect.commit()
     return jsonify(invites=invreq)
-
-
-@app.route('/map', methods=['POST'])
-def go_to_group():
-    groupid = request.form['groupid']
-    try:
-        pgconnect = psycopg2.connect(database=config.dbname, user=config.dbusername,
-                                     password=config.dbpassword, host='localhost', port=config.dbport)
-    except:
-        print("no connection")
-    cur = pgconnect.cursor()
-    cur.execute("SELECT groupname,bounds from groups where groupid = {}".format(groupid))
-    response  = cur.fetchall()
-    for row in response:
-        groupname = row[0]
-        bounds = row[1]
-    # Check for group membership, return group name and bounds and username
-    return render_template('map.html',
-                           groupid=groupid,
-                           userid=session['userid'],
-                           groupname=groupname,
-                           bounds=bounds
-                           )
-
-
-@app.route('/_go_to_disc')
-def go_to_disc():
-    return render_template('index2.html')
-
-
-@app.route('/_recent_posts', methods=['GET'])
-def recent_posts():
-    groupid = request.args.get('groupid', 0, type=str)
-    posts = []
-    try:
-        pgconnect = psycopg2.connect(database=config.dbname, user=config.dbusername,
-                                     password=config.dbpassword, host='localhost', port=config.dbport)
-    except:
-        print("no connection")
-
-    cur = pgconnect.cursor()
-    query = "SELECT posts.postid, posts.userid, posts.date, posts.objectid, posts.postcontent, thread.nickname " \
-            "FROM posts INNER JOIN thread on thread.threadid = posts.threadid " \
-            "WHERE posts.groupid = {} Order by date DESC limit 20;".format(groupid)
-    cur.execute(query)
-
-    response = cur.fetchall()
-    for row in response:
-        posts.append(row)
-    return jsonify(posts=posts)
 
 
 @app.route('/manageRequest', methods=['POST'])
 def manage_request():
-    try:
-        pgconnect = psycopg2.connect(database=config.dbname, user=config.dbusername,
-                                     password=config.dbpassword, host='localhost', port=config.dbport)
-    except:
-        print("no connection")
-
-    cur = pgconnect.cursor()
     requestid = request.form['requestid']
     action = request.form['submit']
 
@@ -177,14 +105,6 @@ def manage_request():
 
 @app.route('/manageInvite', methods=['POST'])
 def accept_invite():
-    try:
-        pgconnect = psycopg2.connect(database=config.dbname, user=config.dbusername,
-                                     password=config.dbpassword, host='localhost', port=config.dbport)
-    except:
-        print("no connection")
-
-    cur = pgconnect.cursor()
-
     requestid = request.form['requestid']
     action = request.form['submit']
 
@@ -197,6 +117,65 @@ def accept_invite():
         pgconnect.commit()
     return render_template('groupselect.html')
 
+
+@app.route('/createGroup', methods=['POST'])
+def create_group():
+    groupname = request.form['groupName']
+    bounds = request.form['bounds']
+    bounds_arr = request.form['bounds'].split(" ")
+    opengroup = 'false'
+    if request.form['opengroup'] == 'on':
+        opengroup = 'true'
+    cur.execute("INSERT INTO groups (geom, groupname, userid, bounds,opengroup) "
+                "VALUES (ST_Centroid(ST_GeomFromText('MULTIPOINT ({} {},{} {})')), '{}', {}, '{}', {})".
+                format(bounds_arr[0],bounds_arr[1],bounds_arr[2],bounds_arr[3],groupname,session['userid'],bounds,opengroup))
+    cur.execute("SELECT groupid FROM groups WHERE groupname = '{}'".format(groupname))
+    response = cur.fetchall()
+    for row in response:
+        groupid = row[0]
+    cur.execute("INSERT INTO usersgroups VALUES ({},{})".format(session['userid'],groupid))
+    pgconnect.commit()
+    return render_template('groupselect.html')
+
+
+@app.route('/_go_to_disc')
+def go_to_disc():
+    return render_template('index2.html')
+
+
+
+@app.route('/map', methods=['POST'])
+def go_to_group():
+    groupid = request.form['groupid']
+    cur.execute("SELECT groupname,bounds from groups where groupid = {}".format(groupid))
+    response  = cur.fetchall()
+    for row in response:
+        groupname = row[0]
+        bounds = row[1]
+    # Check for group membership, return group name and bounds and username
+    return render_template('map.html',
+                           groupid=groupid,
+                           userid=session['userid'],
+                           groupname=groupname,
+                           bounds=bounds
+                           )
+    pgconnect.commit()
+
+@app.route('/_recent_posts', methods=['GET'])
+def recent_posts():
+    groupid = request.args.get('groupid', 0, type=str)
+    posts = []
+    cur = pgconnect.cursor()
+    query = "SELECT posts.postid, posts.userid, posts.date, posts.objectid, posts.postcontent, thread.nickname " \
+            "FROM posts INNER JOIN thread on thread.threadid = posts.threadid " \
+            "WHERE posts.groupid = {} Order by date DESC limit 20;".format(groupid)
+    cur.execute(query)
+
+    response = cur.fetchall()
+    for row in response:
+        posts.append(row)
+    return jsonify(posts=posts)
+    pgconnect.commit()
 
 if __name__ == '__main__':
     app.run()
