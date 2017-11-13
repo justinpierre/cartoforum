@@ -22,13 +22,17 @@ except:
 
 cur = pgconnect.cursor()
 
+
 @app.route('/')
 def index():
-    content = u'Cartoforum'
     if not session.get('logged_in'):
         return render_template('index.html')
     else:
-        return render_template('groupselect.html', content=content)
+        cur.execute("SELECT username from users where userid = {}".format(session['userid']))
+        response = cur.fetchall()
+        for row in response:
+            username = row[0]
+        return render_template('groupselect.html', username=username)
 
 
 @app.route('/login', methods=['POST'])
@@ -97,6 +101,7 @@ def manage_request():
 
     for row in response:
         if action == 'accept':
+            # make sure it doesn't add twice
             cur.execute("INSERT INTO usersgroups VALUES ({},{})".format(row[1],row[0]))
         cur.execute("UPDATE inviteme set accepted = 't' WHERE requestid = {}".format(requestid))
         pgconnect.commit()
@@ -112,6 +117,7 @@ def accept_invite():
     response = cur.fetchall()
     for row in response:
         if action == 'accept':
+            # make sure it doesn't add twice
             cur.execute("INSERT INTO usersgroups VALUES ({},{})".format(session['userid'],row[0]))
         cur.execute("UPDATE grouprequests set complete = true WHERE requestid = {}".format(requestid))
         pgconnect.commit()
@@ -120,11 +126,11 @@ def accept_invite():
 
 @app.route('/createGroup', methods=['POST'])
 def create_group():
-    groupname = request.form['groupName']
-    bounds = request.form['bounds']
-    bounds_arr = request.form['bounds'].split(" ")
+    groupname = request.json['groupname']
+    bounds = request.json['bounds']
+    bounds_arr = request.json['bounds'].split(" ")
     opengroup = 'false'
-    if request.form['opengroup'] == 'on':
+    if request.json['opengroup'] == 'on':
         opengroup = 'true'
     cur.execute("INSERT INTO groups (geom, groupname, userid, bounds,opengroup) "
                 "VALUES (ST_Centroid(ST_GeomFromText('MULTIPOINT ({} {},{} {})')), '{}', {}, '{}', {})".
@@ -135,8 +141,7 @@ def create_group():
         groupid = row[0]
     cur.execute("INSERT INTO usersgroups VALUES ({},{})".format(session['userid'],groupid))
     pgconnect.commit()
-    return render_template('groupselect.html')
-
+    return groupid
 
 @app.route('/_go_to_disc')
 def go_to_disc():

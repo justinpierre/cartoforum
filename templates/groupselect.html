@@ -22,25 +22,23 @@
 				<br>
 				<input type = "button" class = "btn wbtn" value = "Create a Group" onClick = "makeNewGroup()" /><br>
 				<div id = "newGroup">
-					<form method = "POST" action = "/createGroup">
-					<input type = "text" placeholder = "Group Name" name = "groupName"><br>
+					<input type = "text" placeholder = "Group Name" id = "groupName"><br>
 					Do you want anyone to be able to join your group?
-					<br><input type="checkbox" name = "opengroup">Yes<br><br>
+					<br><input type="checkbox" id = "opengroup">Yes<br><br>
 					Set boundaries for the group (optional):
 					<div id = "map">
 					</div>
 					<input type = "hidden" length = "100" id = "bounds" name = "bounds">
 					<br>
-					<input type = "submit" class = "btn bbtn" value = "Create">
-					</form>
+					<input type = "button" class = "btn bbtn" value = "Create" onclick = "groupCreate()">
 				</div> <!--newGroup-->
 				<div id = "invites"></div>
 			</div>
 		</div>
 		<footer>
-		<span style = "padding-left: 80px;"><?php echo $username ?>
+		<span style = "padding-left: 80px;">{{ username }}
 
-		<a href = "#" id = "settings" onclick = "$( 'div#settings-options' ).show('fast')"><img src="{{ url_for('static', filename='images/settings.png') }}"></a>
+		<a href = "#" onclick = "$( 'div#settings-options' ).show('fast')"><img id = "settings" src="{{ url_for('static', filename='images/settings.png') }}"></a>
 		<div id="settings-options">
 		<a href = "account/passwordreset.php">password reset</a>
 		</div>

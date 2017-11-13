@@ -181,8 +181,25 @@ function goToDisc() {
         type: 'POST',
         contentType: 'application/json;charset=UTF-8',
         cache: false,
-        succes: function (response) {
+        success: function (response) {
             console.log(response)
         }
+    })
+}
+
+function groupCreate() {
+    $.ajax({
+        url: $SCRIPT_ROOT + '/createGroup',
+        type: 'POST',
+        contentType: 'application/json;charset=UTF-8',
+        cache: false,
+        data: JSON.stringify({'groupname': $("#groupName").val(), 'opengroup': $("#opengroup").val(), 'bounds': $("#bounds").val()}),
+        success: function (response) {
+            $("#description").html()
+            $( "#newGroup" ).hide( "fast" );
+            getUserGroups();
+
+        }
+
     })
 }
