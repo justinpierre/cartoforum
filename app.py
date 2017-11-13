@@ -145,7 +145,7 @@ def create_group():
 
 @app.route('/_go_to_disc')
 def go_to_disc():
-    return render_template('index2.html')
+    return render_template('discovery.html')
 
 
 

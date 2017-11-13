@@ -175,17 +175,6 @@ function getUserInvites() {
     })
 }
 
-function goToDisc() {
-    $.ajax({
-        url: $SCRIPT_ROOT + '/_go_to_disc',
-        type: 'POST',
-        contentType: 'application/json;charset=UTF-8',
-        cache: false,
-        success: function (response) {
-            console.log(response)
-        }
-    })
-}
 
 function groupCreate() {
     $.ajax({
