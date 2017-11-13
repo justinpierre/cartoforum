@@ -35,39 +35,7 @@
 					<input type = "submit" class = "btn bbtn" value = "Create">
 					</form>
 				</div> <!--newGroup-->
-				<div id = "invites">
-				<?php
-				$query = "SELECT grouprequests.requestid, users.username, groups.groupname, grouprequests.dateissued FROM grouprequests INNER JOIN users ON users.userid = grouprequests.requester JOIN groups ON groups.groupid = grouprequests.groupid  WHERE complete = false AND invitee = " . $userid . ";";
-				$result = pg_query($dbconn, $query);
-				if (!$result) echo $username . " doesn't have any invites.";
-				while ($row = pg_fetch_row($result)) {
-					echo "<br>";
-					echo $row[1] . " has invited you to the group " . $row[2] . " (" . $row[3] . ")";
-					echo "<form method = 'POST' action = 'accept.php'>";
-					echo "<input type = 'hidden' name = 'requestid' value = '" . $row[0] . "'>";
-					echo "<input type = 'submit' value = 'accept'></form>";
-					echo "<form method = 'POST' action = 'decline.php'>";
-					echo "<input type = 'hidden' name = 'requestid' value = '" . $row[0] . "'>";
-						echo "<input type = 'submit' value = 'decline'></form>";
-				}
-				$query = "SELECT inviteme.requestid, users.username, groups.groupname, groups.groupid, inviteme.date FROM inviteme INNER JOIN users ON users.userid = inviteme.userid JOIN groups ON groups.groupid = inviteme.groupid  WHERE accepted is null AND groups.userid = " . $userid . ";";
-				$result = pg_query($dbconn, $query);
-				while ($row = pg_fetch_row($result)) {
-					echo "<br>";
-					echo $row[1] . " has requested an invite to the group " . $row[2] . " (" . $row[4] . ")";
-					echo "<form method = 'POST' action = 'invite.php' class = 'invite'>";
-					echo "<input type = 'hidden' name = 'groupid' value = '" . $row[2] . "'>";
-					echo "<input type = 'hidden' name = 'invitee' value = '" . $row[1] . "'>";
-						echo "<input type = 'submit' class = 'btn wbtn' value = 'send invite'></form>\n";
-						echo "<form method = 'POST' action = 'declineinviterequest.php' class = 'invite'>";
-					echo "<input type = 'hidden' name = 'groupid' value = '" . $row[2] . "'>";
-					echo "<input type = 'hidden' name = 'invitee' value = '" . $row[1] . "'>";
-						echo "<input type = 'submit' class = 'btn wbtn' value = 'decline'></form>\n";
-				}
-				?>
-
-
-				</div>
+				<div id = "invites"></div>
 			</div>
 		</div>
 		<footer>

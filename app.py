@@ -152,5 +152,51 @@ def recent_posts():
     return jsonify(posts=posts)
 
 
+@app.route('/manageRequest', methods=['POST'])
+def manage_request():
+    try:
+        pgconnect = psycopg2.connect(database=config.dbname, user=config.dbusername,
+                                     password=config.dbpassword, host='localhost', port=config.dbport)
+    except:
+        print("no connection")
+
+    cur = pgconnect.cursor()
+    requestid = request.form['requestid']
+    action = request.form['submit']
+
+    cur.execute("SELECT groupid,userid FROM inviteme WHERE requestid = {};".format(requestid))
+    response = cur.fetchall()
+
+    for row in response:
+        if action == 'accept':
+            cur.execute("INSERT INTO usersgroups VALUES ({},{})".format(row[1],row[0]))
+        cur.execute("UPDATE inviteme set accepted = 't' WHERE requestid = {}".format(requestid))
+        pgconnect.commit()
+    return render_template('groupselect.html')
+
+
+@app.route('/manageInvite', methods=['POST'])
+def accept_invite():
+    try:
+        pgconnect = psycopg2.connect(database=config.dbname, user=config.dbusername,
+                                     password=config.dbpassword, host='localhost', port=config.dbport)
+    except:
+        print("no connection")
+
+    cur = pgconnect.cursor()
+
+    requestid = request.form['requestid']
+    action = request.form['submit']
+
+    cur.execute("SELECT groupid FROM grouprequests WHERE requestid = {};".format(requestid))
+    response = cur.fetchall()
+    for row in response:
+        if action == 'accept':
+            cur.execute("INSERT INTO usersgroups VALUES ({},{})".format(session['userid'],row[0]))
+        cur.execute("UPDATE grouprequests set complete = true WHERE requestid = {}".format(requestid))
+        pgconnect.commit()
+    return render_template('groupselect.html')
+
+
 if __name__ == '__main__':
     app.run()

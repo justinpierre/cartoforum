@@ -157,28 +157,21 @@ function getUserInvites() {
     $.getJSON($SCRIPT_ROOT + '/_get_user_invites',
     function(data) {
         for (var i=0; i < data.invites['invites'].length; i++) {
-                $("#invites").append(data.invites['invites'][i]['name'] + "has invited you to the group" + data.invites['invites'][i]);
-                var groupButton = $("<button/>",
-                {
-                    text: data.groups[i]['name'],
-                    id: "groupid"+data.groups[i]['groupid'],
-                    click: function() {
-                        goToGroup(this.id)
-                    }
-                })
-                groupButton.addClass("btn bbtn");
-                $("#description").append(groupButton);
-                if (data.groups[i]['admin'] == 'True') {
-                    var adminButton = $("<button/>",
-                    {
-                        text: "admin",
-                        click: function() {
-                            goToAdmin(data.groups[i]['groupid'])
-                        }
-                    })
-                    groupButton.addClass("btn bbtn")
-                }
-            }
+            var inviteForm = $("<form method = 'POST' action = '/manageInvite'></form>")
+            inviteForm.append(data.invites['invites'][i]['requester'] + " has invited you to the group " + data.invites['invites'][i]['group']);
+            inviteForm.append('<input type = "hidden" name = "requestid" value = "' + data.invites['invites'][i]['requestid'] + '" />');
+            inviteForm.append('<input type = "submit" name = "submit" value = "accept" class= "btn bbtn"/>');
+            inviteForm.append('<input type = "submit" name = "submit" value = "reject" class= "btn wbtn"/>');
+            $("#invites").append(inviteForm);
+        }
+        for (var i=0; i < data.invites['requests'].length; i++) {
+            var inviteForm = $("<form method = 'POST' action = '/manageRequest'></form>")
+            inviteForm.append(data.invites['requests'][i]['requester'] + "has requested a membership to the group " + data.invites['requests'][i]['group']);
+            inviteForm.append('<input type = "hidden" name = "requestid" value = "' + data.invites['requests'][i]['requestid'] + '" />');
+            inviteForm.append('<input type = "submit" name = "submit" value = "accept" class= "btn bbtn"/>');
+            inviteForm.append('<input type = "submit" name = "submit" value = "reject" class= "btn wbtn"/>');
+            $("#invites").append(inviteForm);
+        }
     })
 }
 
