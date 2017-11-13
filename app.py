@@ -9,13 +9,12 @@ from flask import Session
 import psycopg2
 import hashlib
 import config
-import posts
 
 app = Flask(__name__)
 sess = Session()
 app.secret_key = config.secret_key
 app.config['SESSION_TYPE'] = 'filesystem'
-groupid = 0
+
 
 @app.route('/')
 def index():
@@ -76,7 +75,7 @@ def get_user_groups():
     return jsonify(groups=groups)
 
 
-@app.route('/_get_user_invites',methods=['GET'])
+@app.route('/_get_user_invites', methods=['GET'])
 def get_user_invites():
     try:
         pgconnect = psycopg2.connect(database=config.dbname, user=config.dbusername,
@@ -91,7 +90,7 @@ def get_user_invites():
                 "WHERE complete = false AND invitee = '{}'".format(session['userid']))
     response = cur.fetchall()
     for row in response:
-        invreq['invites'].append({"requestid": row[0],"requester": row[1],"group": row[2],"date": row[3]})
+        invreq['invites'].append({"requestid": row[0], "requester": row[1], "group": row[2], "date": row[3]})
 
     cur.execute("SELECT inviteme.requestid, users.username, groups.groupname, inviteme.date "
                 "FROM inviteme INNER JOIN users ON users.userid = inviteme.userid "
@@ -99,7 +98,7 @@ def get_user_invites():
                 "WHERE accepted is null AND groups.userid = '{}'".format(session['userid']))
     response = cur.fetchall()
     for row in response:
-        invreq['requests'].append({"requestid": row[0],"requester": row[1], "group":row[2], "date": row[3]})
+        invreq['requests'].append({"requestid": row[0], "requester": row[1], "group": [2], "date": row[3]})
     return jsonify(invites=invreq)
 
 
@@ -129,6 +128,29 @@ def go_to_group():
 @app.route('/_go_to_disc')
 def go_to_disc():
     return render_template('index2.html')
+
+
+@app.route('/_recent_posts', methods=['GET'])
+def recent_posts():
+    groupid = request.args.get('groupid', 0, type=str)
+    posts = []
+    try:
+        pgconnect = psycopg2.connect(database=config.dbname, user=config.dbusername,
+                                     password=config.dbpassword, host='localhost', port=config.dbport)
+    except:
+        print("no connection")
+
+    cur = pgconnect.cursor()
+    query = "SELECT posts.postid, posts.userid, posts.date, posts.objectid, posts.postcontent, thread.nickname " \
+            "FROM posts INNER JOIN thread on thread.threadid = posts.threadid " \
+            "WHERE posts.groupid = {} Order by date DESC limit 20;".format(groupid)
+    cur.execute(query)
+
+    response = cur.fetchall()
+    for row in response:
+        posts.append(row)
+    return jsonify(posts=posts)
+
 
 if __name__ == '__main__':
     app.run()

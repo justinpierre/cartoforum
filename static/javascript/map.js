@@ -270,16 +270,18 @@ function recentPosts() {
 stopDigitizing();
  $( '#createThread' ).html( '' );
 
-$.ajax({
-        url: $SCRIPT_ROOT + '/_recent_posts',
-        type: 'POST',
-        data: 'groupid':groupid,
-        contentType: 'application/json;charset=UTF-8',
-        cache: false,
-        succes: function (response) {
-            console.log(response)
-        }
-    })
+$.getJSON($SCRIPT_ROOT + '/_recent_posts', {
+        groupid: groupid
+        }, function (response) {
+            for (var i = 0; i<=response.posts.length;i++) {
+                var newpost = "<div class = 'postContent' id = '" + response.posts[i][0] + "' onClick = 'highlightOject(this.id, " + response.posts[i][3] + ")'></div>";
+                newpost += "<div class = 'postTopBar'><p class = 'fromfind'>From: " + response.posts[i][5] + "<span style = 'float: right;'><input type = 'button' class = 'btn findbtn' value = '&#x1f50d;' onclick = 'zoomTo(" + response.posts[i][3] + ")'></span></p></div>";
+                newpost += "<div class = 'postText'>" + response.posts[i][4] + "</div>";
+                $("#posts").append(newpost);
+            }
+
+        });
+
    $( '#filter-by-user' ).val("none");
    $( '#filter-by-thread' ).val("none");
   groupobjects.setSource(groupobjectssrc);
