@@ -143,9 +143,30 @@ def create_group():
     pgconnect.commit()
     return groupid
 
-@app.route('/_go_to_disc')
+@app.route('/_go_to_disc', methods=['POST'])
 def go_to_disc():
     return render_template('discovery.html')
+
+
+@app.route('/_discovery_popup')
+def discovery_popup():
+    import urllib
+    import config
+
+    onlineresource = request.args.get('url')
+    parsed = urllib.parse.urlparse(onlineresource)
+    host = parsed.netloc
+
+    if host != "127.0.0.1":
+        return "Host not allowed"
+    password_mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
+    password_mgr.add_password(None, host, config.argoomapusername, config.argoomappassword)
+    handler = urllib.request.HTTPBasicAuthHandler(password_mgr)
+    opener = urllib.request.build_opener(handler)
+    opener.open(onlineresource)
+    urllib.request.install_opener(opener)
+    with urllib.request.urlopen(onlineresource) as response:
+        return response.read()
 
 
 

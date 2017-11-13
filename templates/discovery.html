@@ -57,7 +57,7 @@ url: 'http://cartoforum.com:8080/geoserver/wms',
 	/*change QUERY_LAYERS to visibleLayers in url*/
         url = "http://127.0.0.1" + url.substring(21);
         url+="&FEATURE_COUNT=15";
-	url = "serverops/proxy1.php?url="+encodeURIComponent(url);
+	url = "/_discovery_popup?url="+encodeURIComponent(url);
 	
 	/*create popup*/
 
