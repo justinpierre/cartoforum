@@ -113,7 +113,8 @@ map = new ol.Map({
 });
 
   var bounds_array = bounds.split(" ");
-map.getView().fitExtent([parseFloat(bounds_array[0]), parseFloat(bounds_array[1]), parseFloat(bounds_array[2]), parseFloat(bounds_array[3])], map.getSize());
+
+  map.getView().fit([parseFloat(bounds_array[0]), parseFloat(bounds_array[1]), parseFloat(bounds_array[2]), parseFloat(bounds_array[3])], map.getSize());
 
 /*wms get feature info*/
 map.on('singleclick', function(e) {
@@ -268,15 +269,17 @@ function addInteraction() {
 function recentPosts() {
 stopDigitizing();
  $( '#createThread' ).html( '' );
- var ajaxRequest = new XMLHttpRequest();
-   ajaxRequest.onreadystatechange=function() {
-   if (ajaxRequest.readyState==4 && ajaxRequest.status==200) {
-     var responsedata = ajaxRequest.responseText;
-     $( "#objid" ).html(responsedata);
-   }
-   }
-   ajaxRequest.open("GET", "serverops/recentPosts.php?groupid="+groupid, true);
-   ajaxRequest.send(); 
+
+$.ajax({
+        url: $SCRIPT_ROOT + '/_recent_posts',
+        type: 'POST',
+        data: 'groupid':groupid,
+        contentType: 'application/json;charset=UTF-8',
+        cache: false,
+        succes: function (response) {
+            console.log(response)
+        }
+    })
    $( '#filter-by-user' ).val("none");
    $( '#filter-by-thread' ).val("none");
   groupobjects.setSource(groupobjectssrc);

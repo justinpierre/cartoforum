@@ -9,12 +9,13 @@ from flask import Session
 import psycopg2
 import hashlib
 import config
+import posts
 
 app = Flask(__name__)
 sess = Session()
 app.secret_key = config.secret_key
 app.config['SESSION_TYPE'] = 'filesystem'
-
+groupid = 0
 
 @app.route('/')
 def index():
@@ -102,14 +103,26 @@ def get_user_invites():
     return jsonify(invites=invreq)
 
 
-@app.route('/_go_to_group', methods=['POST'])
+@app.route('/map', methods=['POST'])
 def go_to_group():
-    data = request.json
-    groupid = data['group']
+    groupid = request.form['groupid']
+    try:
+        pgconnect = psycopg2.connect(database=config.dbname, user=config.dbusername,
+                                     password=config.dbpassword, host='localhost', port=config.dbport)
+    except:
+        print("no connection")
+    cur = pgconnect.cursor()
+    cur.execute("SELECT groupname,bounds from groups where groupid = {}".format(groupid))
+    response  = cur.fetchall()
+    for row in response:
+        groupname = row[0]
+        bounds = row[1]
     # Check for group membership, return group name and bounds and username
     return render_template('map.html',
                            groupid=groupid,
-                           userid=session['userid']
+                           userid=session['userid'],
+                           groupname=groupname,
+                           bounds=bounds
                            )
 
 

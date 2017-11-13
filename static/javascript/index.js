@@ -133,16 +133,10 @@ function getUserGroups() {
         }
         else {
             for (var i=0; i < data.groups.length; i++) {
-                var groupButton = $("<button/>",
-                {
-                    text: data.groups[i]['name'],
-                    id: "groupid"+data.groups[i]['groupid'],
-                    click: function() {
-                        goToGroup(this.id)
-                    }
-                })
-                groupButton.addClass("btn bbtn");
-                $("#description").append(groupButton);
+                var groupForm = $("<form method = 'POST' action = '/map'></form");
+                groupForm.append('<input type = "hidden" name = "groupid" value = "' + data.groups[i]['groupid'] + '">');
+                groupForm.append('<input type = "submit" class = "bbtn btn" value = "' + data.groups[i]['name'] + '">');
+                $("#description").append(groupForm);
                 if (data.groups[i]['admin'] == 'True') {
                     var adminButton = $("<button/>",
                     {
@@ -163,7 +157,7 @@ function getUserInvites() {
     $.getJSON($SCRIPT_ROOT + '/_get_user_invites',
     function(data) {
         for (var i=0; i < data.invites['invites'].length; i++) {
-                $("#invites").append(data.invites['invites'][i]['name'] + "has invited you to the group" + data.invites['invites'][i]
+                $("#invites").append(data.invites['invites'][i]['name'] + "has invited you to the group" + data.invites['invites'][i]);
                 var groupButton = $("<button/>",
                 {
                     text: data.groups[i]['name'],
@@ -185,22 +179,6 @@ function getUserInvites() {
                     groupButton.addClass("btn bbtn")
                 }
             }
-    })
-}
-
-function goToGroup(groupid) {
-    data = {}
-    data['group'] = groupid;
-    data = JSON.stringify(data);
-    $.ajax({
-        url: $SCRIPT_ROOT + '/_go_to_group',
-        type: 'POST',
-        data: data,
-        contentType: 'application/json;charset=UTF-8',
-        cache: false,
-        succes: function (response) {
-            console.log(response)
-        }
     })
 }
 
