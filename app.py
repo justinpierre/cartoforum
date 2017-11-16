@@ -150,23 +150,18 @@ def go_to_disc():
 
 @app.route('/_discovery_popup')
 def discovery_popup():
-    import urllib
+    from urlparse import urlparse
     import config
-
+    from requests.auth import HTTPBasicAuth
+    import requests
     onlineresource = request.args.get('url')
-    parsed = urllib.parse.urlparse(onlineresource)
+    parsed = urlparse(onlineresource)
     host = parsed.netloc
 
-    if host != "127.0.0.1":
+    if host != "127.0.0.1:8080":
         return "Host not allowed"
-    password_mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
-    password_mgr.add_password(None, host, config.argoomapusername, config.argoomappassword)
-    handler = urllib.request.HTTPBasicAuthHandler(password_mgr)
-    opener = urllib.request.build_opener(handler)
-    opener.open(onlineresource)
-    urllib.request.install_opener(opener)
-    with urllib.request.urlopen(onlineresource) as response:
-        return response.read()
+    r = requests.get(onlineresource,auth=HTTPBasicAuth(config.argoomapusername,config.argoomappassword))
+    return r.text
 
 
 
