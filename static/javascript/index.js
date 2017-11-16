@@ -137,15 +137,10 @@ function getUserGroups() {
                 groupForm.append('<input type = "hidden" name = "groupid" value = "' + data.groups[i]['groupid'] + '">');
                 groupForm.append('<input type = "submit" class = "bbtn btn" value = "' + data.groups[i]['name'] + '">');
                 $("#description").append(groupForm);
-                if (data.groups[i]['admin'] == 'True') {
-                    var adminButton = $("<button/>",
-                    {
-                        text: "admin",
-                        click: function() {
-                            goToAdmin(data.groups[i]['groupid'])
-                        }
-                    })
-                    groupButton.addClass("btn bbtn")
+                if (data.groups[i]['admin'] == "true") {
+                    var adminForm = $("<form method = 'POST' action = '/admin'></form>");
+                    adminForm.append('<input type = "hidden" name = "groupid" value = "'+ data.groups[i]['groupid'] + '">');
+                    groupForm.append('<input type = "submit" class = "bbtn btn" value = "admin">');
                 }
             }
         }

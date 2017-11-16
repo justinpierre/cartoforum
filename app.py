@@ -62,9 +62,9 @@ def get_user_groups():
     response = cur.fetchall()
     for row in response:
         if row[1] == session['userid']:
-            groups.append({"name": row[0], "groupid": row[2], "admin": True})
+            groups.append({"name": row[0], "groupid": row[2], "admin": "true"})
         else:
-            groups.append({"name": row[0], "groupid": row[2], "admin": False})
+            groups.append({"name": row[0], "groupid": row[2], "admin": "false"})
     pgconnect.commit()
     return jsonify(groups=groups)
 
@@ -143,7 +143,7 @@ def create_group():
     pgconnect.commit()
     return groupid
 
-@app.route('/_go_to_disc', methods=['POST'])
+@app.route('/discovery', methods=['POST'])
 def go_to_disc():
     return render_template('discovery.html')
 
@@ -164,12 +164,23 @@ def discovery_popup():
     return r.text
 
 
+@app.route('/admin', methods=['POST'])
+def go_to_admin():
+    groupid = request.form['gropuid']
+    cur.execute("SELECT userid from groups where groupid = {}".format(groupid))
+    response = cur.fetchall()
+    for row in response:
+        if row[0] != session['userid']:
+            return index()
+        else:
+            return render_template("admin.html",groupid=groupid)
+
 
 @app.route('/map', methods=['POST'])
 def go_to_group():
     groupid = request.form['groupid']
     cur.execute("SELECT groupname,bounds from groups where groupid = {}".format(groupid))
-    response  = cur.fetchall()
+    response = cur.fetchall()
     for row in response:
         groupname = row[0]
         bounds = row[1]
