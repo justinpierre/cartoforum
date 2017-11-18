@@ -167,13 +167,13 @@ def discovery_popup():
 @app.route('/admin', methods=['POST'])
 def go_to_admin():
     groupid = request.form['gropuid']
-    cur.execute("SELECT userid from groups where groupid = {}".format(groupid))
+    cur.execute("SELECT userid, username from groups where groupid = {}".format(groupid))
     response = cur.fetchall()
     for row in response:
         if row[0] != session['userid']:
             return index()
         else:
-            return render_template("admin.html",groupid=groupid)
+            return render_template("admin.html",groupid=groupid,username=row[1])
 
 
 @app.route('/map', methods=['POST'])
@@ -208,6 +208,34 @@ def recent_posts():
         posts.append(row)
     return jsonify(posts=posts)
     pgconnect.commit()
+
+
+@app.route('/_get_group_threads', methods=['GET'])
+def get_group_threads():
+    groupid = request.args.get('groupid')
+    query = "Select * FROM thread WHERE groupid = ". $groupid.
+    ";";
+    $result = pg_query($dbconn, $query);
+    while ($row = pg_fetch_row($result)) {
+    echo "<tr><td>";
+    echo "<span onclick = 'expand(".$row[0].")'>".$row[1]."</span></td><td>";
+    if ($row[5] == 't') echo "<input type = 'button' value = 're-activate' class='btn wbtn' onclick = 'retireThread(".$row[0].", ".$groupid.", false)'>";
+    else echo "<input type = 'button' value = 'retire' class='btn wbtn' onclick = 'retireThread(".$row[0].", ".$groupid.", true)'>";
+    echo "</td></tr><tr><td colspan = '2'>";
+    echo "<table id = 'posts".$row[0]."' class = 'postlist' style = 'display: none;'>";
+    echo "<tr><th width = '300'>Post</th><th width='50'>votes</th></tr>";
+    $query2 = "SELECT postcontent, SUM(vote) AS votetotal FROM posts left JOIN votes ON posts.postid = votes.postid WHERE posts.threadid = ".$row[0]." GROUP BY postcontent ORDER BY votetotal DESC;";
+
+    $result2 =  pg_query($dbconn, $query2);
+    while ($row2 = pg_fetch_row($result2)) {
+    echo "<tr><td>".$row2[0];
+    echo "</td><td>".$row2[1];
+    echo "</td></tr>";
+    }
+    echo
+    "</table></td></tr>";
+
+}
 
 if __name__ == '__main__':
     app.run()

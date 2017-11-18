@@ -140,7 +140,8 @@ function getUserGroups() {
                 if (data.groups[i]['admin'] == "true") {
                     var adminForm = $("<form method = 'POST' action = '/admin'></form>");
                     adminForm.append('<input type = "hidden" name = "groupid" value = "'+ data.groups[i]['groupid'] + '">');
-                    groupForm.append('<input type = "submit" class = "bbtn btn" value = "admin">');
+                    adminForm.append('<input type = "submit" class = "bbtn btn" value = "admin">');
+                    $("#description").append(adminForm);
                 }
             }
         }
@@ -186,4 +187,12 @@ function groupCreate() {
         }
 
     })
+}
+
+function getThreads() {
+ $.getJSON($SCRIPT_ROOT + '/_get_group_threads',
+    {groupid: groupid},
+    function(data) {
+      $("#threads").append()
+    }
 }
