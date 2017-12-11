@@ -254,7 +254,7 @@ def recent_posts():
     groupid = request.args.get('groupid', 0, type=str)
     posts = []
 
-    for p, t in sess.query(Post, Thread).join(Thread).where(Post.groupid == groupid):
+    for p, t in sess.query(Post, Thread).join(Thread).filter_by(Post.groupid == groupid):
         print(p.postcontent, t.nickname)
         posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname])
     return jsonify(posts=posts)
@@ -269,26 +269,26 @@ def get_post():
     clicked_thread = {}
     retired_threads = []
     # get a list of retired threads
-    for t in sess.query(Thread).where(Thread.retired == 't'):
+    for t in sess.query(Thread).filter_by(Thread.retired == 't'):
         retired_threads.append(t.threadid)
     # create a list of threads related to the clicked object
     if data_type == "objid":
-        for t in sess.query(Post).where(Post.objectid == id):
+        for t in sess.query(Post).filter_by(Post.objectid == id):
             clicked_thread[t.threadid] = []
         for t, v in clicked_thread.iteritems:
-            for p in sess.query(Post).where(Post.objectid == id).where(Post.threadid == t):
+            for p in sess.query(Post).filter_by(Post.objectid == id).where(Post.threadid == t):
                 clicked_thread[t].append(p.postid)
                 clicked_post.append(p.postid)
 
     else:
         clicked_post.append(id)
-        t = sess.query(Thread).where(Thread.threadid == id).one().threadid
+        t = sess.query(Thread).filter_by(Thread.threadid == id).one().threadid
         clicked_thread[t] = [id]
 
     # figure out every thread, recursive conversation list, clicked or not, votes
 
     for i, clickedid in clicked_thread.iteritems():
-        thread_name = sess.query(Thread).where(Thread.threadid == i)
+        thread_name = sess.query(Thread).filter_by(Thread.threadid == i)
         thread_data[i] = {"name": thread_name}
         thread_data[i]['posts'] = []
         if i in retired_threads:
@@ -297,15 +297,15 @@ def get_post():
         original_post = clickedid[0]
         responseto = True
         while responseto:
-            for p, r in sess.query(Post, Thread).join(Thread).where(Post.threadid == i
-                                                                    and Post.postid == original_post):
+            for p, r in sess.query(Post, Thread).join(Thread).filter_by(Post.threadid == i
+                                                                        and Post.postid == original_post):
                 if p.responseto > 0:
                     original_post = p.responseto
                 else:
                     responseto = False
 
         # also join username and vote count
-        for p, t in sess.query(Post, Thread).join(Thread).where(Post.threadid == i).where(Post.postid == original_post):
+        for p, t in sess.query(Post, Thread).join(Thread).filter_by(Post.threadid == i).filter_by(Post.postid == original_post):
             thread_data[i]['posts'].append({"postid": p.postid, "userposted": p.userid, "date": p.date,
                                            "post": p.postcontent, "objectid": p.objectid})
 
