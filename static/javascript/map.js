@@ -432,8 +432,8 @@ function highlightObject(postid, objid) {
         }, 2000);
   }}
  }
- if (!postid) ajaxRequest.open("GET", "serverops/getPost.php?objid="+objid, true);
- else ajaxRequest.open("GET", "serverops/getPost.php?obj="+postid, true);
+ if (!postid) ajaxRequest.open("GET", "serverops/getPost.php?id="+objid+"&type=objid", true);
+ else ajaxRequest.open("GET", "serverops/getPost.php?id="+postid+"&type=postid", true);
  ajaxRequest.send();        
 }
 

@@ -10,8 +10,44 @@ import psycopg2
 import hashlib
 import config
 
+from sqlalchemy import create_engine
+from sqlalchemy import Column, String, Integer, Date, Boolean,ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import relationship
+
+db_string = "postgres://{}:{}@localhost:5432/{}".format(config.dbusername,config.dbpassword,config.dbname)
+db = create_engine(db_string)
+base = declarative_base()
+
+class Post(base):
+    __tablename__ = 'posts'
+    postid = Column(Integer,primary_key=True)
+    userid = Column(Integer)
+    groupid = Column(Integer)
+    objectid = Column(Integer)
+    date = Column(Date)
+    postcontent = Column(String)
+    responseto = Column(Integer)
+    threadid = Column(Integer, ForeignKey("thread.threadid"))
+    post_thread = relationship("Thread", foreign_keys=[threadid])
+
+class Thread(base):
+    __tablename__ = 'thread'
+    threadid = Column(Integer,primary_key=True)
+    nickname = Column(String)
+    name = Column(String)
+    groupid = Column(Integer)
+    resolved = Column(Integer)
+    retired = Column(Boolean)
+
+
 app = Flask(__name__)
+
+Session = sessionmaker(db)
 sess = Session()
+base.metadata.create_all(db)
+
 app.secret_key = config.secret_key
 app.config['SESSION_TYPE'] = 'filesystem'
 try:
@@ -176,6 +212,25 @@ def go_to_admin():
             return render_template("admin.html",groupid=groupid,username=row[1])
 
 
+@app.route('/_get_group_threads', methods=['GET'])
+def get_group_threads():
+    groupid = request.args.get('groupid')
+    query = cur.execute("Select * FROM thread WHERE groupid = {}".format(groupid))
+    response = cur.fetchall(query)
+    threads = []
+    for row in response:
+        threads.append({"threadid": row[0], "name": row[1], "retired": row[5], "posts" : []})
+
+        query = cur.execute("SELECT postcontent, SUM(vote) AS votetotal FROM posts left JOIN votes ON posts.postid = votes.postid " \
+                "WHERE posts.threadid = {} GROUP BY postcontent ORDER BY votetotal DESC;".format(row[0]))
+
+        response2 =  cur.fetchall(query)
+        for row2 in response2:
+            threads[len(threads)-1]["posts"].append({"postcontent": row2[0], "votes": row2[1]})
+    pgconnect.commit()
+    return jsonify(threads=threads)
+
+
 @app.route('/map', methods=['POST'])
 def go_to_group():
     groupid = request.form['groupid']
@@ -193,49 +248,67 @@ def go_to_group():
                            )
     pgconnect.commit()
 
+
 @app.route('/_recent_posts', methods=['GET'])
 def recent_posts():
     groupid = request.args.get('groupid', 0, type=str)
     posts = []
-    cur = pgconnect.cursor()
-    query = "SELECT posts.postid, posts.userid, posts.date, posts.objectid, posts.postcontent, thread.nickname " \
-            "FROM posts INNER JOIN thread on thread.threadid = posts.threadid " \
-            "WHERE posts.groupid = {} Order by date DESC limit 20;".format(groupid)
-    cur.execute(query)
 
-    response = cur.fetchall()
-    for row in response:
-        posts.append(row)
+    for p, t in sess.query(Post, Thread).join(Thread).where(Post.groupid == groupid):
+        print(p.postcontent, t.nickname)
+        posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname])
     return jsonify(posts=posts)
-    pgconnect.commit()
 
 
-@app.route('/_get_group_threads', methods=['GET'])
-def get_group_threads():
-    groupid = request.args.get('groupid')
-    query = "Select * FROM thread WHERE groupid = ". $groupid.
-    ";";
-    $result = pg_query($dbconn, $query);
-    while ($row = pg_fetch_row($result)) {
-    echo "<tr><td>";
-    echo "<span onclick = 'expand(".$row[0].")'>".$row[1]."</span></td><td>";
-    if ($row[5] == 't') echo "<input type = 'button' value = 're-activate' class='btn wbtn' onclick = 'retireThread(".$row[0].", ".$groupid.", false)'>";
-    else echo "<input type = 'button' value = 'retire' class='btn wbtn' onclick = 'retireThread(".$row[0].", ".$groupid.", true)'>";
-    echo "</td></tr><tr><td colspan = '2'>";
-    echo "<table id = 'posts".$row[0]."' class = 'postlist' style = 'display: none;'>";
-    echo "<tr><th width = '300'>Post</th><th width='50'>votes</th></tr>";
-    $query2 = "SELECT postcontent, SUM(vote) AS votetotal FROM posts left JOIN votes ON posts.postid = votes.postid WHERE posts.threadid = ".$row[0]." GROUP BY postcontent ORDER BY votetotal DESC;";
+@app.route('/_get_post', methods=['GET'])
+def get_post():
+    id = request.args.get('id', 0, type=int)
+    data_type = request.args.get('type', 0, type=str)
+    thread_data = {}
+    clicked_post = []
+    clicked_thread = {}
+    retired_threads = []
+    # get a list of retired threads
+    for t in sess.query(Thread).where(Thread.retired == 't'):
+        retired_threads.append(t.threadid)
+    # create a list of threads related to the clicked object
+    if data_type == "objid":
+        for t in sess.query(Post).where(Post.objectid == id):
+            clicked_thread[t.threadid] = []
+        for t, v in clicked_thread.iteritems:
+            for p in sess.query(Post).where(Post.objectid == id).where(Post.threadid == t):
+                clicked_thread[t].append(p.postid)
+                clicked_post.append(p.postid)
 
-    $result2 =  pg_query($dbconn, $query2);
-    while ($row2 = pg_fetch_row($result2)) {
-    echo "<tr><td>".$row2[0];
-    echo "</td><td>".$row2[1];
-    echo "</td></tr>";
-    }
-    echo
-    "</table></td></tr>";
+    else:
+        clicked_post.append(id)
+        t = sess.query(Thread).where(Thread.threadid == id).one().threadid
+        clicked_thread[t] = [id]
 
-}
+    # figure out every thread, recursive conversation list, clicked or not, votes
+
+    for i, clickedid in clicked_thread.iteritems():
+        thread_name = sess.query(Thread).where(Thread.threadid == i)
+        thread_data[i] = {"name": thread_name}
+        thread_data[i]['posts'] = []
+        if i in retired_threads:
+            thread_data[i]['retired'] = True
+
+        original_post = clickedid[0]
+        responseto = True
+        while responseto:
+            for p, r in sess.query(Post, Thread).join(Thread).where(Post.threadid == i
+                                                                    and Post.postid == original_post):
+                if p.responseto > 0:
+                    original_post = p.responseto
+                else:
+                    responseto = False
+
+        # also join username and vote count
+        for p, t in sess.query(Post, Thread).join(Thread).where(Post.threadid == i).where(Post.postid == original_post):
+            thread_data[i]['posts'].append({"postid": p.postid, "userposted": p.userid, "date": p.date,
+                                           "post": p.postcontent, "objectid": p.objectid})
+
 
 if __name__ == '__main__':
     app.run()
