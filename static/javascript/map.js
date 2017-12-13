@@ -127,7 +127,7 @@ map.on('singleclick', function(e) {
   var viewResolution = /** @type {number} */ (map.getView().getResolution());
   var url = groupobjectssrc.getGetFeatureInfoUrl( e.coordinate, viewResolution, 'EPSG:3857', {'INFO_FORMAT': 'text/html'});
   url = "http://127.0.0.1" + url.substring(21);
-  url="serverops/proxy1.php?url="+encodeURIComponent(url);
+  url="/_discovery_popup?url="+encodeURIComponent(url);
 
   var xmlhttp = new XMLHttpRequest();
   xmlhttp.onreadystatechange=function() {
@@ -412,13 +412,31 @@ function highlightObject(postid, objid) {
     if (selectedObjectSrc) selectedobject.setSource();
     if (objid) {
       selectedObjectSrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-      url: 'http://cartoforum.com:8080/geoserver/wms',
+      url: 'http://52.91.93.1.com:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:SelectedFeatures', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'objid:'+objid},
 		serverType: 'geoserver'
 	     }));
       selectedobject = new ol.layer.Tile({source: selectedObjectSrc, visible: true});
       map.addLayer(selectedobject);
     }
+
+  if (!postid) {
+   var data_type = 'objid';
+   var id = objid;
+  }
+  else{
+    var data_type = 'postid';
+    var id = postid;
+  }
+
+  $.getJSON($SCRIPT_ROOT + '/_get_post', {
+     id: id,
+     type: data_type
+  }, function (response) {
+    console.log(response);
+  }
+  )
+        /*
  var ajaxRequest = new XMLHttpRequest();
  ajaxRequest.onreadystatechange=function() {
  if (ajaxRequest.readyState==4 && ajaxRequest.status==200) {
@@ -434,7 +452,8 @@ function highlightObject(postid, objid) {
  }
  if (!postid) ajaxRequest.open("GET", "serverops/getPost.php?id="+objid+"&type=objid", true);
  else ajaxRequest.open("GET", "serverops/getPost.php?id="+postid+"&type=postid", true);
- ajaxRequest.send();        
+ ajaxRequest.send();
+ */
 }
 
 function newThread() {

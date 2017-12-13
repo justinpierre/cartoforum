@@ -195,4 +195,4 @@ function getThreads() {
     function(data) {
       $("#threads").append()
     }
-}
+)}

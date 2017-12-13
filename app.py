@@ -10,8 +10,9 @@ import psycopg2
 import hashlib
 import config
 
+import sqlalchemy
 from sqlalchemy import create_engine
-from sqlalchemy import Column, String, Integer, Date, Boolean,ForeignKey
+from sqlalchemy import Column, String, Integer, Date, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import relationship
@@ -19,6 +20,17 @@ from sqlalchemy.orm import relationship
 db_string = "postgres://{}:{}@localhost:5432/{}".format(config.dbusername,config.dbpassword,config.dbname)
 db = create_engine(db_string)
 base = declarative_base()
+
+
+class Users(base):
+    __tablename__ = 'users'
+    userid = Column(Integer,primary_key=True)
+    username = Column(String)
+    password = Column(String)
+    email = Column(String)
+    verified = Column(Boolean)
+    twitterid = Column(Integer)
+
 
 class Post(base):
     __tablename__ = 'posts'
@@ -32,14 +44,33 @@ class Post(base):
     threadid = Column(Integer, ForeignKey("thread.threadid"))
     post_thread = relationship("Thread", foreign_keys=[threadid])
 
+
 class Thread(base):
     __tablename__ = 'thread'
     threadid = Column(Integer,primary_key=True)
     nickname = Column(String)
     name = Column(String)
-    groupid = Column(Integer)
+    groupid = Column(Integer, ForeignKey("groups.groupid"))
     resolved = Column(Integer)
     retired = Column(Boolean)
+    thread_group = relationship("Group", foreign_keys=[groupid])
+
+
+class UsersGroups(base):
+    __tablename__ = 'usersgroups'
+    userid = Column(Integer, ForeignKey("users.userid"), primary_key=True)
+    groupid = Column(Integer, ForeignKey("groups.groupid"), primary_key=True)
+    usersgroups_users = relationship("Users", foreign_keys=[userid])
+    usersgroups_groups = relationship("Group", foreign_keys=[groupid])
+
+
+class Group(base):
+    __tablename__ = 'groups'
+    groupid = Column(Integer,primary_key=True)
+    groupname = Column(String)
+    userid = Column(Integer)
+    bounds = Column(String)
+    opengroup = Column(Boolean)
 
 
 app = Flask(__name__)
@@ -92,16 +123,11 @@ def do_login():
 @app.route('/_get_user_groups', methods=['GET'])
 def get_user_groups():
     groups = []
-    cur.execute("SELECT groupname, groups.userid, groups.groupid FROM groups INNER JOIN usersgroups on "
-                "groups.GroupID = usersgroups.GroupID "
-                "WHERE usersgroups.UserID = {}".format(session['userid']))
-    response = cur.fetchall()
-    for row in response:
-        if row[1] == session['userid']:
-            groups.append({"name": row[0], "groupid": row[2], "admin": "true"})
+    for g, u in sess.query(Group, UsersGroups).join(UsersGroups).filter_by(userid=session['userid']):
+        if g.userid == session['userid']:
+            groups.append({"name":g.groupname, "groupid": g.groupid, "admin": "true"})
         else:
-            groups.append({"name": row[0], "groupid": row[2], "admin": "false"})
-    pgconnect.commit()
+            groups.append({"name": g.groupname, "groupid": g.groupid, "admin": "false"})
     return jsonify(groups=groups)
 
 
@@ -254,7 +280,7 @@ def recent_posts():
     groupid = request.args.get('groupid', 0, type=str)
     posts = []
 
-    for p, t in sess.query(Post, Thread).join(Thread).filter_by(Post.groupid == groupid):
+    for p, t in sess.query(Post, Thread).join(Thread).filter_by(groupid=groupid):
         print(p.postcontent, t.nickname)
         posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname])
     return jsonify(posts=posts)
@@ -269,26 +295,24 @@ def get_post():
     clicked_thread = {}
     retired_threads = []
     # get a list of retired threads
-    for t in sess.query(Thread).filter_by(Thread.retired == 't'):
+    for t in sess.query(Thread).filter_by(retired='t'):
         retired_threads.append(t.threadid)
     # create a list of threads related to the clicked object
     if data_type == "objid":
-        for t in sess.query(Post).filter_by(Post.objectid == id):
+        for t in sess.query(Post).filter_by(objectid=id):
             clicked_thread[t.threadid] = []
-        for t, v in clicked_thread.iteritems:
-            for p in sess.query(Post).filter_by(Post.objectid == id).where(Post.threadid == t):
+        for t, v in clicked_thread.iteritems():
+            for p in sess.query(Post).filter_by(objectid=id).filter_by(threadid=t):
                 clicked_thread[t].append(p.postid)
                 clicked_post.append(p.postid)
-
     else:
         clicked_post.append(id)
-        t = sess.query(Thread).filter_by(Thread.threadid == id).one().threadid
+        t = sess.query(Thread).filter_by(threadid=id).one().threadid
         clicked_thread[t] = [id]
-
     # figure out every thread, recursive conversation list, clicked or not, votes
 
     for i, clickedid in clicked_thread.iteritems():
-        thread_name = sess.query(Thread).filter_by(Thread.threadid == i)
+        thread_name = sess.query(Thread).filter_by(threadid=i).one().nickname
         thread_data[i] = {"name": thread_name}
         thread_data[i]['posts'] = []
         if i in retired_threads:
@@ -297,17 +321,17 @@ def get_post():
         original_post = clickedid[0]
         responseto = True
         while responseto:
-            for p, r in sess.query(Post, Thread).join(Thread).filter_by(Post.threadid == i
-                                                                        and Post.postid == original_post):
+            for p in sess.query(Post).filter_by(postid=original_post):
                 if p.responseto > 0:
                     original_post = p.responseto
                 else:
                     responseto = False
 
         # also join username and vote count
-        for p, t in sess.query(Post, Thread).join(Thread).filter_by(Post.threadid == i).filter_by(Post.postid == original_post):
+        for p, t in sess.query(Post, Thread).filter_by(postid=original_post).join(Thread).filter_by(threadid=i):
             thread_data[i]['posts'].append({"postid": p.postid, "userposted": p.userid, "date": p.date,
                                            "post": p.postcontent, "objectid": p.objectid})
+    return jsonify(data=thread_data)
 
 
 if __name__ == '__main__':
