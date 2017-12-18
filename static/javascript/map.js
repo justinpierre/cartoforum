@@ -206,25 +206,6 @@ $('#filter-by-user').change(function() {
   }});
 $('#filter-by-user').trigger('change');
 
-/* var serverPoll = setInterval(function() {
- var ajaxRequest = new XMLHttpRequest();
- ajaxRequest.onreadystatechange=function() {
- if (ajaxRequest.readyState==4 && ajaxRequest.status==200) {
-   var responsedata = ajaxRequest.responseText;
-   if (responsedata != instanceid) {
-	var params = groupobjectssrc.getParams();
-	  params.t = new Date().getMilliseconds();
-	  groupobjectssrc.updateParams(params);
-	 instanceid = responsedata;
-   }
-  }
- }
- ajaxRequest.open("GET", "serverops/checkInstance.php?g="+groupid, true);
- ajaxRequest.send();
-}, 10000);
-
-$('.sidebar').jScrollPane();
-*/
 recentPosts();
 }
 
@@ -273,13 +254,12 @@ stopDigitizing();
 $.getJSON($SCRIPT_ROOT + '/_recent_posts', {
         groupid: groupid
         }, function (response) {
-            for (var i = 0; i<=response.posts.length;i++) {
+            for (var i = 0; i<response.posts.length;i++) {
                 var newpost = "<div class = 'postContent' id = '" + response.posts[i][0] + "' onClick = 'highlightOject(this.id, " + response.posts[i][3] + ")'></div>";
                 newpost += "<div class = 'postTopBar'><p class = 'fromfind'>From: " + response.posts[i][5] + "<span style = 'float: right;'><input type = 'button' class = 'btn findbtn' value = '&#x1f50d;' onclick = 'zoomTo(" + response.posts[i][3] + ")'></span></p></div>";
                 newpost += "<div class = 'postText'>" + response.posts[i][4] + "</div>";
                 $("#posts").append(newpost);
             }
-
         });
 
    $( '#filter-by-user' ).val("none");
@@ -412,7 +392,7 @@ function highlightObject(postid, objid) {
     if (selectedObjectSrc) selectedobject.setSource();
     if (objid) {
       selectedObjectSrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-      url: 'http://52.91.93.1.com:8080/geoserver/wms',
+      url: 'http://54.173.156.37:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:SelectedFeatures', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'objid:'+objid},
 		serverType: 'geoserver'
 	     }));
@@ -433,28 +413,31 @@ function highlightObject(postid, objid) {
      id: id,
      type: data_type
   }, function (response) {
-    console.log(response);
-  }
-  )
-        /*
- var ajaxRequest = new XMLHttpRequest();
- ajaxRequest.onreadystatechange=function() {
- if (ajaxRequest.readyState==4 && ajaxRequest.status==200) {
-   var responsedata = ajaxRequest.responseText;
-   $(".clickedPostTopBar").addClass("postTopBar");
-    $(".clickedPostTopBar").removeClass("clickedPostTopBar");
-     if (!selectExisting) $( "#objid" ).html(responsedata);
-     if (!postid) {
-      $('#sidebar').animate({
-        scrollTop: $(".clickedPostTopBar").offset().top-140
-        }, 2000);
-  }}
+       $("#posts").html("")
+       for (var key in response.data) {
+         var newthread = "<div id = 'threadname'><div style = 'margin-right: 30px'>" + response.data[key].name + '</div>';
+         newthread += '<img class = "addpost" id = "addtothread' + key + '" src = {{ url_for("static",  filename="images/images/add.png" onclick = "postToThread(' + key + ')" data-toggle="tooltip" title="Add to thread"><span class = "clickinst">Click to add a post</span></div>';
+         newthread += '<div class = "postToThread" id = "postToThread' + key + '"></div>';
+         $("#posts").append(newthread);
+         for (var i=0; i< response.data[key].posts.length; i++) {
+          var newpost = "<div class = 'postContent' id = '" + response.data[key].posts[i].postid + "' onClick = 'highlightOject(this.id, " + response.data[key].posts[i].objectid + ")'></div>";
+          newpost += "<div class = 'postTopBar'><p class = 'fromfind'>From: " + response.data[key].name + "<span style = 'float: right;'><input type = 'button' class = 'btn findbtn' value = '&#x1f50d;' onclick = 'zoomTo(" + response.data[key].posts[i].objectid + ")'></span></p></div>";
+          newpost += "<div class = 'postText'>" + response.data[key].posts[i].post + "</div>";
+          $("#posts").append(newpost);
+         }
+       }
+       $(".clickedPostTopBar").addClass("postTopBar");
+       $(".clickedPostTopBar").removeClass("clickedPostTopBar");
+       if (!selectExisting) $( "#objid" ).html(responsedata);
+       if (!postid) {
+         $('#sidebar').animate({
+           scrollTop: $(".clickedPostTopBar").offset().top-140
+         }, 2000);
+       }
+    }
+ )
  }
- if (!postid) ajaxRequest.open("GET", "serverops/getPost.php?id="+objid+"&type=objid", true);
- else ajaxRequest.open("GET", "serverops/getPost.php?id="+postid+"&type=postid", true);
- ajaxRequest.send();
- */
-}
+
 
 function newThread() {
   $( "#objid" ).html("");
