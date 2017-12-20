@@ -83,7 +83,7 @@ dark = new ol.layer.Tile({
   });
 
 groupobjectssrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-url: 'http://cartoforum.com:8080/geoserver/wms',
+url: 'http://54.224.218.98:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:groupobjects', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid},
 		serverType: 'geoserver'
 	     }));if (style == 1) dark.setVisible(1);
@@ -126,7 +126,7 @@ map.on('singleclick', function(e) {
 	}
   var viewResolution = /** @type {number} */ (map.getView().getResolution());
   var url = groupobjectssrc.getGetFeatureInfoUrl( e.coordinate, viewResolution, 'EPSG:3857', {'INFO_FORMAT': 'text/html'});
-  url = "http://127.0.0.1" + url.substring(21);
+  url = "http://127.0.0.1" + url.substring(20);
   url="/_discovery_popup?url="+encodeURIComponent(url);
 
   var xmlhttp = new XMLHttpRequest();
@@ -178,7 +178,7 @@ $('#filter-by-thread').change(function() {
      ajaxRequest.open("GET", "serverops/threads.php?threadid="+threadid, true);
      ajaxRequest.send(); 
      threadsrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-     url: 'http://cartoforum.com:8080/geoserver/wms',
+     url: 'http://54.224.218.98:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:threadview', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid+';threadid:'+threadid},
 		serverType: 'geoserver'
 	     }));
@@ -188,22 +188,44 @@ $('#filter-by-thread').change(function() {
 });
 $('#filter-by-thread').trigger('change');
 
+//populate user filter on click
+
+$('#filter-by-user').on('click',function() {
+    $('#filter-by-user')
+        .find('option')
+        .remove()
+        .end()
+    ;
+  $.getJSON($SCRIPT_ROOT + '/_get_group_users',
+  function (response) {
+    for (key in response.group_users) {
+      $('#filter-by-user').append($('<option/>', {
+        value: key,
+        text: response.group_users[key]
+        }));
+      }
+  })
+})
+
 //filter posts by user
 $('#filter-by-user').change(function() {
  var userfilter = $(this).find(':selected').val();
  if (userfilter != "none") {
  $( '#createThread' ).html( '' );
   var userid = $(this).find(':selected').val();
-   var ajaxRequest = new XMLHttpRequest();
-   ajaxRequest.onreadystatechange=function() {
-   if (ajaxRequest.readyState==4 && ajaxRequest.status==200) {
-     var responsedata = ajaxRequest.responseText;
-     $( "#objid" ).html(responsedata);
-   }
-   }
-   ajaxRequest.open("GET", "serverops/userPosts.php?userid="+userid+"&groupid="+groupid, true);
-   ajaxRequest.send(); 
-  }});
+   $.getJSON($SCRIPT_ROOT + '/_user_posts',{
+        userid: userid
+   }, function (response) {
+            $("#posts").html("")
+            for (var i = 0; i<response.posts.length;i++) {
+                var newpost = "<div class = 'postContent' id = '" + response.posts[i][0] + "' onClick = 'highlightOject(this.id, " + response.posts[i][3] + ")'></div>";
+                newpost += "<div class = 'postTopBar'><p class = 'fromfind'>From: " + response.posts[i][5] + "<span style = 'float: right;'><input type = 'button' class = 'btn findbtn' value = '&#x1f50d;' onclick = 'zoomTo(" + response.posts[i][3] + ")'></span></p></div>";
+                newpost += "<div class = 'postText'>" + response.posts[i][4] + "</div>";
+                $("#posts").append(newpost);
+            }
+        });
+  }
+});
 $('#filter-by-user').trigger('change');
 
 recentPosts();
@@ -250,7 +272,6 @@ function addInteraction() {
 function recentPosts() {
 stopDigitizing();
  $( '#createThread' ).html( '' );
-
 $.getJSON($SCRIPT_ROOT + '/_recent_posts', {
         groupid: groupid
         }, function (response) {
@@ -392,7 +413,7 @@ function highlightObject(postid, objid) {
     if (selectedObjectSrc) selectedobject.setSource();
     if (objid) {
       selectedObjectSrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-      url: 'http://54.173.156.37:8080/geoserver/wms',
+      url: 'http://54.224.218.98:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:SelectedFeatures', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'objid:'+objid},
 		serverType: 'geoserver'
 	     }));

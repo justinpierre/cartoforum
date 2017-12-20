@@ -4,7 +4,7 @@ __author__ = u'justinpierre'
 
 from flask import Flask
 from flask import render_template, jsonify, flash, redirect, request, session, abort
-from flask import Session
+
 
 import psycopg2
 import hashlib
@@ -20,7 +20,6 @@ from sqlalchemy.orm import relationship
 db_string = "postgres://{}:{}@localhost:5432/{}".format(config.dbusername,config.dbpassword,config.dbname)
 db = create_engine(db_string)
 base = declarative_base()
-
 
 class Users(base):
     __tablename__ = 'users'
@@ -77,6 +76,7 @@ app = Flask(__name__)
 
 Session = sessionmaker(db)
 sess = Session()
+
 base.metadata.create_all(db)
 
 app.secret_key = config.secret_key
@@ -257,9 +257,18 @@ def get_group_threads():
     return jsonify(threads=threads)
 
 
+@app.route('/_get_group_users', methods=['GET'])
+def get_group_users():
+    group_users = {}
+    for ug, u in sess.query(UsersGroups,Users).filter_by(groupid=session['groupid']).join(Users):
+        group_users[ug.userid] = u.username
+    return jsonify(group_users=group_users)
+
+
 @app.route('/map', methods=['POST'])
 def go_to_group():
     groupid = request.form['groupid']
+    session['groupid'] = request.form['groupid']
     cur.execute("SELECT groupname,bounds from groups where groupid = {}".format(groupid))
     response = cur.fetchall()
     for row in response:
@@ -279,9 +288,16 @@ def go_to_group():
 def recent_posts():
     groupid = request.args.get('groupid', 0, type=str)
     posts = []
-
     for p, t in sess.query(Post, Thread).join(Thread).filter_by(groupid=groupid):
-        print(p.postcontent, t.nickname)
+        posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname])
+    return jsonify(posts=posts)
+
+
+@app.route('/_user_posts', methods=['GET'])
+def user_posts():
+    userid = request.args.get('userid',0,type=str)
+    posts = []
+    for p, t in sess.query(Post, Thread).filter_by(userid=userid).join(Thread):
         posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname])
     return jsonify(posts=posts)
 
