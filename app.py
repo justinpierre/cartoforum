@@ -34,7 +34,7 @@ class Users(base):
 class Post(base):
     __tablename__ = 'posts'
     postid = Column(Integer,primary_key=True)
-    userid = Column(Integer)
+    userid = Column(Integer, ForeignKey("users.userid"))
     groupid = Column(Integer)
     objectid = Column(Integer)
     date = Column(Date)
@@ -42,7 +42,7 @@ class Post(base):
     responseto = Column(Integer)
     threadid = Column(Integer, ForeignKey("thread.threadid"))
     post_thread = relationship("Thread", foreign_keys=[threadid])
-
+    post_users = relationship("Users", foreign_keys=[userid])
 
 class Thread(base):
     __tablename__ = 'thread'
@@ -70,6 +70,14 @@ class Group(base):
     userid = Column(Integer)
     bounds = Column(String)
     opengroup = Column(Boolean)
+
+
+class Votes(base):
+    __tablename__ = 'votes'
+    userid = Column(Integer, ForeignKey("users.userid"))
+    postid
+    vote
+
 
 
 app = Flask(__name__)
@@ -286,10 +294,9 @@ def go_to_group():
 
 @app.route('/_recent_posts', methods=['GET'])
 def recent_posts():
-    groupid = request.args.get('groupid', 0, type=str)
     posts = []
-    for p, t in sess.query(Post, Thread).join(Thread).filter_by(groupid=groupid):
-        posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname])
+    for p, t, u in sess.query(Post, Thread,Users).join(Thread).filter_by(groupid=session['groupid']).join(Users):
+        posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname,u.username])
     return jsonify(posts=posts)
 
 
@@ -344,10 +351,21 @@ def get_post():
                     responseto = False
 
         # also join username and vote count
-        for p, t in sess.query(Post, Thread).filter_by(postid=original_post).join(Thread).filter_by(threadid=i):
-            thread_data[i]['posts'].append({"postid": p.postid, "userposted": p.userid, "date": p.date,
-                                           "post": p.postcontent, "objectid": p.objectid})
+        for p, t,u in sess.query(Post, Thread,Users).filter_by(postid=original_post).join(Thread).filter_by(threadid=i).join(Users):
+            thread_data[i]['posts'].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username])
     return jsonify(data=thread_data)
+
+
+@app.route('/_zoom_to',methods=['GET'])
+def zoom_to():
+    bbox = ''
+    objid = request.args.get('objid',0,type=int)
+    cur.execute("Select ST_xmin(ST_Envelope(geom)), ST_ymin(ST_Envelope(geom)), ST_xmax(ST_Envelope(geom)), "
+                "ST_ymax(ST_Envelope(geom)) from mapobjects where objectid={}".format(objid))
+    response = cur.fetchall()
+    for row in response:
+        bbox = "{}, {}, {}, {}".format(row[0],row[1], row[2], row[3])
+    return jsonify(bounds=bbox)
 
 
 if __name__ == '__main__':

@@ -83,7 +83,7 @@ dark = new ol.layer.Tile({
   });
 
 groupobjectssrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-url: 'http://54.224.218.98:8080/geoserver/wms',
+url: 'http://54.242.123.102:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:groupobjects', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid},
 		serverType: 'geoserver'
 	     }));if (style == 1) dark.setVisible(1);
@@ -126,7 +126,7 @@ map.on('singleclick', function(e) {
 	}
   var viewResolution = /** @type {number} */ (map.getView().getResolution());
   var url = groupobjectssrc.getGetFeatureInfoUrl( e.coordinate, viewResolution, 'EPSG:3857', {'INFO_FORMAT': 'text/html'});
-  url = "http://127.0.0.1" + url.substring(20);
+  url = "http://127.0.0.1" + url.substring(21);
   url="/_discovery_popup?url="+encodeURIComponent(url);
 
   var xmlhttp = new XMLHttpRequest();
@@ -178,7 +178,7 @@ $('#filter-by-thread').change(function() {
      ajaxRequest.open("GET", "serverops/threads.php?threadid="+threadid, true);
      ajaxRequest.send(); 
      threadsrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-     url: 'http://54.224.218.98:8080/geoserver/wms',
+     url: 'http://54.242.123.102:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:threadview', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid+';threadid:'+threadid},
 		serverType: 'geoserver'
 	     }));
@@ -269,16 +269,21 @@ function addInteraction() {
   }
 }
 
+function createPost(post){
+    var newpost = "<div class = 'postContent' id = '" + post[0] + "' onClick = 'highlightOject(this.id, " + post[3] + ")'></div>";
+    newpost += "<div class = 'postTopBar'><p class = 'fromfind'>From: " + post[5] + "<span style = 'float: right;'><input type = 'button' class = 'btn findbtn' value = '&#x1f50d;' onclick = 'zoomTo(" + post[3] + ")'></span></p>"
+    newpost += "User " + post[6] + "<span style = 'float: right; font-size: 8px;'>\n Date " + post[2] + "</span></div>";
+    newpost += "<div class = 'postText'>" + post[4] + "</div>";
+    return newpost
+}
+
 function recentPosts() {
 stopDigitizing();
  $( '#createThread' ).html( '' );
-$.getJSON($SCRIPT_ROOT + '/_recent_posts', {
-        groupid: groupid
-        }, function (response) {
+$.getJSON($SCRIPT_ROOT + '/_recent_posts',
+  function (response) {
             for (var i = 0; i<response.posts.length;i++) {
-                var newpost = "<div class = 'postContent' id = '" + response.posts[i][0] + "' onClick = 'highlightOject(this.id, " + response.posts[i][3] + ")'></div>";
-                newpost += "<div class = 'postTopBar'><p class = 'fromfind'>From: " + response.posts[i][5] + "<span style = 'float: right;'><input type = 'button' class = 'btn findbtn' value = '&#x1f50d;' onclick = 'zoomTo(" + response.posts[i][3] + ")'></span></p></div>";
-                newpost += "<div class = 'postText'>" + response.posts[i][4] + "</div>";
+                var newpost = createPost(response.posts[i]);
                 $("#posts").append(newpost);
             }
         });
@@ -413,7 +418,7 @@ function highlightObject(postid, objid) {
     if (selectedObjectSrc) selectedobject.setSource();
     if (objid) {
       selectedObjectSrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-      url: 'http://54.224.218.98:8080/geoserver/wms',
+      url: 'http://54.242.123.102:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:SelectedFeatures', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'objid:'+objid},
 		serverType: 'geoserver'
 	     }));
@@ -441,9 +446,7 @@ function highlightObject(postid, objid) {
          newthread += '<div class = "postToThread" id = "postToThread' + key + '"></div>';
          $("#posts").append(newthread);
          for (var i=0; i< response.data[key].posts.length; i++) {
-          var newpost = "<div class = 'postContent' id = '" + response.data[key].posts[i].postid + "' onClick = 'highlightOject(this.id, " + response.data[key].posts[i].objectid + ")'></div>";
-          newpost += "<div class = 'postTopBar'><p class = 'fromfind'>From: " + response.data[key].name + "<span style = 'float: right;'><input type = 'button' class = 'btn findbtn' value = '&#x1f50d;' onclick = 'zoomTo(" + response.data[key].posts[i].objectid + ")'></span></p></div>";
-          newpost += "<div class = 'postText'>" + response.data[key].posts[i].post + "</div>";
+          var newpost = createPost(response.data[key].posts[i]);
           $("#posts").append(newpost);
          }
        }
@@ -587,22 +590,19 @@ function updateVote(user,post,vote) {
   }
 
 function zoomTo(objid) {
-  var ajaxRequest = new XMLHttpRequest();
-  ajaxRequest.onreadystatechange=function() {
-  if (ajaxRequest.readyState==4 && ajaxRequest.status==200) {
-     var responsedata = ajaxRequest.responseText;
-     var bounds_array = responsedata.split(",");
-     if (responsedata == ", , , ") alert("no geography");
+  $.getJSON($SCRIPT_ROOT + '/_zoom_to', {
+    objid: objid
+    }, function (response) {
+     var bounds_array = response.bounds.split(",");
+     if (response.bounds == ", , , ") alert("no geography");
       else if (bounds_array[1] == bounds_array[3]) {
-       map.getView().fitExtent([parseFloat(bounds_array[0]), parseFloat(bounds_array[1]), parseFloat(bounds_array[2]), parseFloat(bounds_array[3])], map.getSize());
+       map.getView().fit([parseFloat(bounds_array[0]), parseFloat(bounds_array[1]), parseFloat(bounds_array[2]), parseFloat(bounds_array[3])], map.getSize());
          map.getView().setZoom(16);
       }
-      else map.getView().fitExtent([parseFloat(bounds_array[0]), parseFloat(bounds_array[1]), parseFloat(bounds_array[2]), parseFloat(bounds_array[3])], map.getSize());
-  }}
-  var querystring = "?obj="+objid;
-  ajaxRequest.open("GET", "serverops/zoomTo.php"+querystring, true);
-  ajaxRequest.send();
-  }
+      else map.getView().fit([parseFloat(bounds_array[0]), parseFloat(bounds_array[1]), parseFloat(bounds_array[2]), parseFloat(bounds_array[3])], map.getSize());
+
+  })
+}
 
 function deletePost(postid) {
   var ajaxRequest = new XMLHttpRequest();
