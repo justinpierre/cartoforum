@@ -83,7 +83,7 @@ dark = new ol.layer.Tile({
   });
 
 groupobjectssrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-url: 'http://54.242.123.102:8080/geoserver/wms',
+url: 'http://54.173.14.194:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:groupobjects', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid},
 		serverType: 'geoserver'
 	     }));if (style == 1) dark.setVisible(1);
@@ -126,7 +126,7 @@ map.on('singleclick', function(e) {
 	}
   var viewResolution = /** @type {number} */ (map.getView().getResolution());
   var url = groupobjectssrc.getGetFeatureInfoUrl( e.coordinate, viewResolution, 'EPSG:3857', {'INFO_FORMAT': 'text/html'});
-  url = "http://127.0.0.1" + url.substring(21);
+  url = "http://127.0.0.1" + url.substring(20);
   url="/_discovery_popup?url="+encodeURIComponent(url);
 
   var xmlhttp = new XMLHttpRequest();
@@ -163,8 +163,21 @@ if (style == 3) base.setVisible(1);
 $('#layer-select').trigger('change');
 
 //filter posts by thread
-$('#filter-by-thread').change(function() {
- $( '#createThread' ).html( '' );
+$('#filter-by-thread').on('click',function() {
+  $( '#createThread' ).html( '' );
+  $( '#filter-by-thread')
+    .find('option')
+    .remove()
+    .end()
+    ;
+  $.getJSON($SCRIPT_ROOT + '/_get_group_threads'
+  function(response){
+  for (key in resonse.group_threads) {
+    $('filter-by-thread').append($('<option/>', {
+      value: key,
+      text: response.group_users[key]}))
+  }})
+
   var threadid = $(this).find(':selected').val();
   if (threadid == "new") newThread();
   else if (threadid != "none") {
@@ -178,7 +191,7 @@ $('#filter-by-thread').change(function() {
      ajaxRequest.open("GET", "serverops/threads.php?threadid="+threadid, true);
      ajaxRequest.send(); 
      threadsrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-     url: 'http://54.242.123.102:8080/geoserver/wms',
+     url: 'http://54.173.14.194:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:threadview', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid+';threadid:'+threadid},
 		serverType: 'geoserver'
 	     }));
@@ -387,38 +400,35 @@ function saveObject() {
   typeSelect = document.getElementById('type');
   if (typeSelect.options[typeSelect.selectedIndex].index==0) {
 	alert ("Choose a geography type, or if your post doesn't have geography choose none");
-        return;
-   }
-var format = new ol.format['WKT']();
+    return;
+  }
+  var format = new ol.format['WKT']();
   var data = format.writeFeatures(vector.getSource().getFeatures());  
-if (data == "GEOMETRYCOLLECTION EMPTY" && typeSelect.options[typeSelect.selectedIndex].index<4) {
+  if (data == "GEOMETRYCOLLECTION EMPTY" && typeSelect.options[typeSelect.selectedIndex].index<4) {
 	alert ("It looks like you haven't finished adding any geography. You may need to double click to finish drawing a line or polygon.");
-        return;
-}
-  
-  var ajaxRequest = new XMLHttpRequest();
+    return;
+  }
   if (selectExisting >0) savePost(selectExisting);
   else if (data == "GEOMETRYCOLLECTION EMPTY") savePost(null);
   else {
-  var querystring = "?obj="+encodeURIComponent(data)+"&g="+groupid+"&u="+userid;
-  vsource.clear();
-  ajaxRequest.onreadystatechange=function() {
-  if (ajaxRequest.readyState==4 && ajaxRequest.status==200) {
-    var responsedata = ajaxRequest.responseText;
-    var objid=responsedata;
-    savePost(objid);
+    vsource.clear();
+    $.getJSON($SCRIPT_ROOT + '/_save_object',{
+     jsonshp: encodeURIComponent(data)
   }
+    function (response) {
+      for (var i = 0; i<response.posts.length;i++) {
+      var responsedata = ajaxRequest.responseText;
+      var objid=responsedata;
+      savePost(objid);         }
+     });
   }
-  ajaxRequest.open("GET", "serverops/storeObject.php"+querystring, true);
-  ajaxRequest.send();
-}
 }
 
 function highlightObject(postid, objid) {
     if (selectedObjectSrc) selectedobject.setSource();
     if (objid) {
       selectedObjectSrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-      url: 'http://54.242.123.102:8080/geoserver/wms',
+      url: 'http://54.173.14.194:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:SelectedFeatures', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'objid:'+objid},
 		serverType: 'geoserver'
 	     }));

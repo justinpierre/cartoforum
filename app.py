@@ -9,6 +9,7 @@ from flask import render_template, jsonify, flash, redirect, request, session, a
 import psycopg2
 import hashlib
 import config
+import datetime
 
 import sqlalchemy
 from sqlalchemy import create_engine
@@ -74,10 +75,11 @@ class Group(base):
 
 class Votes(base):
     __tablename__ = 'votes'
-    userid = Column(Integer, ForeignKey("users.userid"))
-    postid
-    vote
-
+    userid = Column(Integer, ForeignKey("users.userid"), primary_key=True)
+    postid = Column(Integer, ForeignKey("posts.postid"), primary_key=True)
+    vote = Column(Integer)
+    votes_posts = relationship("Post", foreign_keys=[postid])
+    votes_users = relationship("Users", foreign_keys=[userid])
 
 
 app = Flask(__name__)
@@ -366,6 +368,21 @@ def zoom_to():
     for row in response:
         bbox = "{}, {}, {}, {}".format(row[0],row[1], row[2], row[3])
     return jsonify(bounds=bbox)
+
+@app.route('/_save_post', methods=['GET'])
+def save_post():
+    geom = request.args.get('jsonshp',0,type=str)
+    query = cur.execute("SELECT count(*) FROM mapobjects where geom = ST_GeomFromText('{}',3857) AND userid = {} and date > (now() - INTERVAL '2 MINUTE');".format(geom,session["userid"]))
+    response = cur.fetchall(query)
+    for row in response:
+        if row[0]>0:
+            return None
+    cur.execute("INSERT INTO mapobjects (geom, groupid, userid, date) VALUES (ST_GeomFromText('{}',3857), {}, {}, '{}');".format(geom,session['groupid'],session['userid'],datetime.datetime.utcnow()))
+    pgconnect.commit()
+    query = cur.execute("SELECT objectid FROM mapobjects WHERE userid = {0} AND date = (SELECT max(date) FROM mapobjects WHERE userid = {0});".format(session["userid"]))
+    response = cur.fetchall(query)
+    for row in response:
+        return jsonify(objid=row[0])
 
 
 if __name__ == '__main__':
