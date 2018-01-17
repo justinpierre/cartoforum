@@ -250,20 +250,20 @@ def go_to_admin():
 
 @app.route('/_get_group_threads', methods=['GET'])
 def get_group_threads():
-    groupid = request.args.get('groupid')
-    query = cur.execute("Select * FROM thread WHERE groupid = {}".format(groupid))
-    response = cur.fetchall(query)
+    groupid = session['groupid']
     threads = []
-    for row in response:
-        threads.append({"threadid": row[0], "name": row[1], "retired": row[5], "posts" : []})
+    for t in sess.query(Thread).filter_by(groupid=groupid):
+        threads.append({"threadid": t.threadid, "name": t.nickname, "retired": t.retired})
+    return jsonify(threads=threads)
 
-        query = cur.execute("SELECT postcontent, SUM(vote) AS votetotal FROM posts left JOIN votes ON posts.postid = votes.postid " \
-                "WHERE posts.threadid = {} GROUP BY postcontent ORDER BY votetotal DESC;".format(row[0]))
-
-        response2 =  cur.fetchall(query)
-        for row2 in response2:
-            threads[len(threads)-1]["posts"].append({"postcontent": row2[0], "votes": row2[1]})
-    pgconnect.commit()
+@app.route('/_get_thread_posts', methods=['GET'])
+def get_thread_posts():
+    threads=[]
+    threadid = request.args.get('threadid', 0, type=str)
+    for t in sess.query(Thread).filter_by(threadid=threadid):
+        threads.append({"threadid": t.threadid, "name": t.nickname, "retired": t.retired, "posts" : []})
+        for p,t,u in sess.query(Post,Thread,Users).filter_by(threadid=threadid).join(Thread).join(Users):
+            threads[len(threads)-1]["posts"].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username])
     return jsonify(threads=threads)
 
 

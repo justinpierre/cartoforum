@@ -83,7 +83,7 @@ dark = new ol.layer.Tile({
   });
 
 groupobjectssrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-url: 'http://54.173.14.194:8080/geoserver/wms',
+url: 'http://34.203.35.160:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:groupobjects', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid},
 		serverType: 'geoserver'
 	     }));if (style == 1) dark.setVisible(1);
@@ -163,35 +163,39 @@ if (style == 3) base.setVisible(1);
 $('#layer-select').trigger('change');
 
 //filter posts by thread
-$('#filter-by-thread').on('click',function() {
   $( '#createThread' ).html( '' );
-  $( '#filter-by-thread')
-    .find('option')
-    .remove()
-    .end()
-    ;
-  $.getJSON($SCRIPT_ROOT + '/_get_group_threads'
-  function(response){
-  for (key in resonse.group_threads) {
-    $('filter-by-thread').append($('<option/>', {
-      value: key,
-      text: response.group_users[key]}))
+  $.getJSON($SCRIPT_ROOT + '/_get_group_threads',
+  function (response) {
+  for (var i in response.threads) {
+      $('#filter-by-thread').append($('<option/>', {
+      value: response.threads[i]['threadid'],
+      text: response.threads[i]['name']
+      }));
   }})
 
+
+$('#filter-by-thread').change(function(){
   var threadid = $(this).find(':selected').val();
   if (threadid == "new") newThread();
   else if (threadid != "none") {
-     var ajaxRequest = new XMLHttpRequest();
-     ajaxRequest.onreadystatechange=function() {
-     if (ajaxRequest.readyState==4 && ajaxRequest.status==200) {
-       var responsedata = ajaxRequest.responseText;
-       $( "#objid" ).html(responsedata);
-     }
-     }
-     ajaxRequest.open("GET", "serverops/threads.php?threadid="+threadid, true);
-     ajaxRequest.send(); 
+     $.getJSON($SCRIPT_ROOT + '/_get_thread_posts',{
+       threadid: threadid
+     },
+     function (response) {
+         $("#posts").html("")
+       for (var i in response.threads) {
+         var newthread = "<div id = 'threadname'><div style = 'margin-right: 30px'>" + response.threads[i]['name'] + '</div>';
+         newthread += '<img class = "addpost" id = "addtothread' + response.threads[i]['threadid'] + '" src = {{ url_for("static",  filename="images/images/add.png" onclick = "postToThread(' + response.threads[i]['threadid'] + ')" data-toggle="tooltip" title="Add to thread"><span class = "clickinst">Click to add a post</span></div>';
+         newthread += '<div class = "postToThread" id = "postToThread' + response.threads[i]['threadid'] + '"></div>';
+         $("#posts").append(newthread);
+         for (var j=0; j< response.threads[i]['posts'].length; j++) {
+          var newpost = createPost(response.threads[i]['posts'][j]);
+          $("#posts").append(newpost);
+         }
+       }
+       });
      threadsrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-     url: 'http://54.173.14.194:8080/geoserver/wms',
+     url: 'http://34.203.35.160:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:threadview', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid+';threadid:'+threadid},
 		serverType: 'geoserver'
 	     }));
@@ -202,13 +206,6 @@ $('#filter-by-thread').on('click',function() {
 $('#filter-by-thread').trigger('change');
 
 //populate user filter on click
-
-$('#filter-by-user').on('click',function() {
-    $('#filter-by-user')
-        .find('option')
-        .remove()
-        .end()
-    ;
   $.getJSON($SCRIPT_ROOT + '/_get_group_users',
   function (response) {
     for (key in response.group_users) {
@@ -218,7 +215,7 @@ $('#filter-by-user').on('click',function() {
         }));
       }
   })
-})
+
 
 //filter posts by user
 $('#filter-by-user').change(function() {
@@ -414,7 +411,7 @@ function saveObject() {
     vsource.clear();
     $.getJSON($SCRIPT_ROOT + '/_save_object',{
      jsonshp: encodeURIComponent(data)
-  }
+  },
     function (response) {
       for (var i = 0; i<response.posts.length;i++) {
       var responsedata = ajaxRequest.responseText;
@@ -428,7 +425,7 @@ function highlightObject(postid, objid) {
     if (selectedObjectSrc) selectedobject.setSource();
     if (objid) {
       selectedObjectSrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-      url: 'http://54.173.14.194:8080/geoserver/wms',
+      url: 'http://34.203.35.160:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:SelectedFeatures', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'objid:'+objid},
 		serverType: 'geoserver'
 	     }));
