@@ -374,20 +374,19 @@ function saveThread() {
 }
 
 function savePost(objid) {
-  
   var text_data = $( "textarea#new-objinfo" ).val();
-  var ajaxRequestText = new XMLHttpRequest();
-  var querystring = "?text="+encodeURIComponent(text_data)+"&g="+groupid+"&u="+userid+"&objid="+objid;
-  if (replyID) querystring += "&r="+replyID;
-  else { var threadid = document.getElementById("postToThreadID").value;
-         querystring +="&t="+ threadid;
-  }
-  ajaxRequestText.onreadystatechange=function() {
-   if (ajaxRequestText.readyState==4 && ajaxRequestText.status==200) {
+  var threadid = document.getElementById("postToThreadID").value;
+  $.post($SCRIPT_ROOT + '/_save_post',{
+     text: text_data,
+     objid: objid,
+     replyID: replyID,
+     threadid: threadid
+  },
+    function (response) {
       replyID = null;
       selectExisting=false;
       $( "div#reply-to-post"+replyID ).html("");
-      $( "#objid" ).html("");
+      $( "#sidebar" ).html("");
       $( "#createThread" ).hide("fast");
       $( "#createThread" ).html("");
       //refresh map
@@ -396,14 +395,13 @@ function savePost(objid) {
       groupobjectssrc.updateParams(params);
       typeSelect.selectedIndex=0;
       map.removeInteraction(draw);
-      map.removeInteraction(modify);  
+      map.removeInteraction(modify);
       map.removeInteraction(select);
       digitizing = false;
-   }
-  }
-  ajaxRequestText.open("GET", "serverops/storeText.php"+querystring, true);
-  ajaxRequestText.send();
-  recentPosts();
+      recentPosts();
+     });
+
+
 }
 
 function saveObject() {
@@ -423,11 +421,10 @@ function saveObject() {
   else {
     vsource.clear();
     $.getJSON($SCRIPT_ROOT + '/_save_object',{
-     jsonshp: encodeURIComponent(data)
-  },
+        jsonshp: encodeURIComponent(data)
+     },
     function (response) {
-      for (var i = 0; i<response.posts.length;i++) {
-        savePost(response.objid);         }
+        savePost(response.objid);
      });
   }
 }
@@ -470,7 +467,6 @@ function highlightObject(postid, objid) {
        }
        $(".clickedPostTopBar").addClass("postTopBar");
        $(".clickedPostTopBar").removeClass("clickedPostTopBar");
-       if (!selectExisting) $( "#objid" ).html(responsedata);
        if (!postid) {
          $('#sidebar').animate({
            scrollTop: $(".clickedPostTopBar").offset().top-140

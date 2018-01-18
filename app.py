@@ -299,7 +299,7 @@ def go_to_group():
 def recent_posts():
     posts = []
     voted = vtotal = None
-    for p, t, u in sess.query(Post, Thread, Users).join(Thread).filter_by(groupid=session['groupid']).join(Users):
+    for p, t, u in sess.query(Post, Thread, Users).order_by(Post.date).join(Thread).filter_by(groupid=session['groupid']).join(Users):
         qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
         for res in qry.all():
             vtotal = res
@@ -355,23 +355,42 @@ def get_post():
         if i in retired_threads:
             thread_data[i]['retired'] = True
 
-        original_post = clickedid[0]
+        next_post = clickedid[0]
         responseto = True
         while responseto:
-            for p in sess.query(Post).filter_by(postid=original_post):
+            for p in sess.query(Post).filter_by(postid=next_post):
                 if p.responseto > 0:
-                    original_post = p.responseto
+                    next_post = p.responseto
                 else:
                     responseto = False
-
+        vtotal = voted = None
         # also join username and vote count
-        for p, t,u in sess.query(Post, Thread,Users).filter_by(postid=original_post).join(Thread).filter_by(threadid=i).join(Users):
+        for p, t,u in sess.query(Post, Thread,Users).filter_by(postid=next_post).join(Thread).filter_by(threadid=i).join(Users):
             qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
             for res in qry.all():
                 vtotal = res
             for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=session['userid']):
                 voted = v.vote
-            thread_data[i]['posts'].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username], vtotal[0], voted)
+            thread_data[i]['posts'].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0], voted])
+
+            responseto = True
+            while responseto:
+                p = sess.query(Post).filter_by(responseto=next_post).all()
+                if not p:
+                    responseto = False
+                for p in sess.query(Post).filter_by(responseto=next_post):
+                    next_post = p.postid
+                    for p, t, u in sess.query(Post, Thread, Users).filter_by(postid=next_post).join(Thread).filter_by(
+                            threadid=i).join(Users):
+                        qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
+                        for res in qry.all():
+                            vtotal = res
+                        for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=session['userid']):
+                            voted = v.vote
+                        thread_data[i]['posts'].append(
+                            [p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0],
+                             voted])
+
     return jsonify(data=thread_data)
 
 
@@ -401,6 +420,29 @@ def save_object():
     response = cur.fetchall()
     for row in response:
         return jsonify(objid=row[0])
+
+
+@app.route('/_save_post', methods = ['POST'])
+def save_post():
+    threadid = request.form['threadid']
+    replyID = request.form['replyID']
+    objid = request.form['objid']
+    text = request.form['text']
+    ug = sess.query(UsersGroups).filter_by(userid=session['userid']).filter_by(groupid=session['groupid']).one().userid
+    if not ug:
+        return jsonify("user not permitted to do this")
+
+    if replyID:
+        thread_id = sess.query(Post).filter_by(postid=replyID).one().threadid
+        insert_post = Post(userid=session['userid'], groupid=session['groupid'], date=datetime.datetime.utcnow(),
+                           responseto=replyID,objectid=objid,postcontent=text,threadid=thread_id)
+
+    else:
+        insert_post = Post(userid=session['userid'], groupid=session['groupid'], date=datetime.datetime.utcnow(),
+                           objectid=objid, postcontent=text, threadid=threadid)
+    sess.add(insert_post)
+    sess.commit()
+    return jsonify("success")
 
 
 @app.route('/_save_thread', methods=['GET'])
