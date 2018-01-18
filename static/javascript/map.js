@@ -83,7 +83,7 @@ dark = new ol.layer.Tile({
   });
 
 groupobjectssrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-url: 'http://34.203.35.160:8080/geoserver/wms',
+url: 'http://54.226.0.216:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:groupobjects', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid},
 		serverType: 'geoserver'
 	     }));if (style == 1) dark.setVisible(1);
@@ -126,7 +126,7 @@ map.on('singleclick', function(e) {
 	}
   var viewResolution = /** @type {number} */ (map.getView().getResolution());
   var url = groupobjectssrc.getGetFeatureInfoUrl( e.coordinate, viewResolution, 'EPSG:3857', {'INFO_FORMAT': 'text/html'});
-  url = "http://127.0.0.1" + url.substring(20);
+  url = "http://127.0.0.1" + url.substring(19);
   url="/_discovery_popup?url="+encodeURIComponent(url);
 
   var xmlhttp = new XMLHttpRequest();
@@ -162,17 +162,8 @@ if (style == 3) base.setVisible(1);
 });
 $('#layer-select').trigger('change');
 
-//filter posts by thread
-  $( '#createThread' ).html( '' );
-  $.getJSON($SCRIPT_ROOT + '/_get_group_threads',
-  function (response) {
-  for (var i in response.threads) {
-      $('#filter-by-thread').append($('<option/>', {
-      value: response.threads[i]['threadid'],
-      text: response.threads[i]['name']
-      }));
-  }})
 
+getGroupThreads()
 
 $('#filter-by-thread').change(function(){
   var threadid = $(this).find(':selected').val();
@@ -195,7 +186,7 @@ $('#filter-by-thread').change(function(){
        }
        });
      threadsrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-     url: 'http://34.203.35.160:8080/geoserver/wms',
+     url: 'http://54.226.0.216:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:threadview', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid+';threadid:'+threadid},
 		serverType: 'geoserver'
 	     }));
@@ -284,6 +275,19 @@ function createPost(post){
     newpost += "<div class = 'postTopBar'><p class = 'fromfind'>From: " + post[5] + "<span style = 'float: right;'><input type = 'button' class = 'btn findbtn' value = '&#x1f50d;' onclick = 'zoomTo(" + post[3] + ")'></span></p>"
     newpost += "User " + post[6] + "<span style = 'float: right; font-size: 8px;'>\n Date " + post[2] + "</span></div>";
     newpost += "<div class = 'postText'>" + post[4] + "</div>";
+    if (post[8] == 0 || !post[8]) {
+      newpost += "<a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",-1)'><img class = 'votebtns' src='/static/images/minus.png'></a><span class = 'vtotal'>";
+      newpost += post[7] + "</span><a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",1)'><img class = 'votebtns' src='/static/images/plus.png'></a></a>";
+    }
+    if (post[8] == 1) {
+      newpost += "<a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",-1)'><img class = 'votebtns' src='/static/images/minus.png'></a><span class = 'vtotal'>";
+      newpost += post[7] + "</span><a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",0)'><img class = 'votebtns' src='/static/images/plus.png'></a></a>";
+    }
+    if (post[8] == -1) {
+      newpost += "<a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",0)'><img class = 'votebtns' src='../images/minus.png'></a><span class = 'vtotal'>";
+      newpost += post[7] + "</span><a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",1)'><img class = 'votebtns' src='/static/images/plus.png'></a></a>";
+    }
+
     return newpost
 }
 
@@ -304,6 +308,18 @@ $.getJSON($SCRIPT_ROOT + '/_recent_posts',
    var params = groupobjectssrc.getParams();
 	  params.t = new Date().getMilliseconds();
 	  groupobjectssrc.updateParams(params);
+}
+
+function getGroupThreads() {
+  $( '#createThread' ).html( '' );
+  $.getJSON($SCRIPT_ROOT + '/_get_group_threads',
+  function (response) {
+  for (var i in response.threads) {
+      $('#filter-by-thread').append($('<option/>', {
+      value: response.threads[i]['threadid'],
+      text: response.threads[i]['name']
+      }));
+  }})
 }
 
 function postExtent() { 
@@ -347,17 +363,14 @@ function searchPosts() {
 
 function saveThread() {
   //Save thread
-	var ajaxThreadRequest = new XMLHttpRequest();var params = groupobjectssrc.getParams();
-	  params.t = new Date().getMilliseconds();
-	  groupobjectssrc.updateParams(params);
-	var threadString = "?nick="+encodeURIComponent($( "input#new-threadnick" ).val())+"&name="+encodeURIComponent($( "textarea#new-threadname" ).val())+"&g="+groupid;
-	ajaxThreadRequest.onreadystatechange=function() {
-          if (ajaxThreadRequest.readyState==4 && ajaxThreadRequest.status==200) {
-	    location.reload();
-          }
-         }
-        ajaxThreadRequest.open("GET", "serverops/storeThread.php"+threadString, true);
-        ajaxThreadRequest.send();
+  $.getJSON($SCRIPT_ROOT + '/_save_thread',
+    {
+      nick: $("input#new-threadnick").val(),
+      name: encodeURIComponent($( "textarea#new-threadname").val())
+    },
+  function (response) {
+            getGroupThreads();
+        });
 }
 
 function savePost(objid) {
@@ -414,9 +427,7 @@ function saveObject() {
   },
     function (response) {
       for (var i = 0; i<response.posts.length;i++) {
-      var responsedata = ajaxRequest.responseText;
-      var objid=responsedata;
-      savePost(objid);         }
+        savePost(response.objid);         }
      });
   }
 }
@@ -425,7 +436,7 @@ function highlightObject(postid, objid) {
     if (selectedObjectSrc) selectedobject.setSource();
     if (objid) {
       selectedObjectSrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-      url: 'http://34.203.35.160:8080/geoserver/wms',
+      url: 'http://54.226.0.216:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:SelectedFeatures', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'objid:'+objid},
 		serverType: 'geoserver'
 	     }));
@@ -471,15 +482,13 @@ function highlightObject(postid, objid) {
 
 
 function newThread() {
-  $( "#objid" ).html("");
+  $( "#sidebar" ).html("");
   var html = '<div id = "createThread" class = "replyArea"><input type = "text" id = "new-threadnick" placeholder = "Nickname for Thread" /><br>';
   html += '<textarea id = "new-threadname" placeholder = "Thread description"></textarea><br><br>';
   html += '<input type = "button" value = "save" class = "btn bbtn" onclick = "saveThread()">';
   html += '<input type = "button" value = "cancel" class = "btn bbtn" onclick = "$( `#createThread` ).html(``)"></div>';
-  $( "#objid" ).html(html);
+  $( "#sidebar" ).html(html);
   $( "#createThread" ).show("fast");
-
-
 }
 
 

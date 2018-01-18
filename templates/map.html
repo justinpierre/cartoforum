@@ -32,17 +32,7 @@ $.ajaxSetup({ cache: false });
  </select>
  <select id = "filter-by-thread" name = "filter-by-thread">
  <option value = "none">View a Thread</option>
-
-	<!--$query = "Select threadid, nickname, retired FROM thread where thread.groupid = " . $groupid . ";";
-	$result = pg_query($dbconn, $query);
- 	while ($row = pg_fetch_row($result)) {
-	  echo "<option value = '" . $row[0] . "'";
-          if ($row[2] == 't') echo "class = 'retired'";
-          echo ">" . $row[1] . "</option>"; 
-	}
-    ?>
-    -->
-    <option value = 'new'>New Thread</option>
+     <option value = 'new'>New Thread</option>
  </select>
 <input type = "button" class = "btn bbtn" value = "filter to extent" onclick = "postExtent()">
 </span>
@@ -56,13 +46,13 @@ $.ajaxSetup({ cache: false });
 <option value="Aerial">Aerial</option>
 <option value="Road">Road</option>
 </select>
-<a href = "#" id = "style-select" onclick = "$( 'div#style-select-options' ).show('fast')"><img id = "selectedStyle" src="images/green.gif"></a>
+<a href = "#" id = "style-select" onclick = "$( 'div#style-select-options' ).show('fast')"><img id = "selectedStyle" src="{{ url_for('static', filename='images/green.gif') }}"></a>
 <div id="style-select-options">
-<img src = "images/green.gif" id = "green" onclick = "styleChange(this.id)">
-<img src = "images/red.gif" id = "red" onclick = "styleChange(this.id)">
-<img src = "images/purple.gif" id = "purple" onclick = "styleChange(this.id)">
-<img src = "images/blue.gif" id = "blue" onclick = "styleChange(this.id)">
-<img src = "images/orange.gif" id = "orange" onclick = "styleChange(this.id)">
+<img src = "{{ url_for('static', filename='images/green.gif') }}" id = "green" onclick = "styleChange(this.id)">
+<img src = "{{ url_for('static', filename='images/red.gif') }}" id = "red" onclick = "styleChange(this.id)">
+<img src = "{{ url_for('static', filename='images/purple.gif') }}" id = "purple" onclick = "styleChange(this.id)">
+<img src = "{{ url_for('static', filename='images/blue.gif') }}" id = "blue" onclick = "styleChange(this.id)">
+<img src = "{{ url_for('static', filename='images/orange.gif') }}" id = "orange" onclick = "styleChange(this.id)">
 </div>
 </span>
 

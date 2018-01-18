@@ -10,6 +10,7 @@ import psycopg2
 import hashlib
 import config
 import datetime
+import urlparse
 
 import sqlalchemy
 from sqlalchemy import create_engine
@@ -222,12 +223,11 @@ def go_to_disc():
 
 @app.route('/_discovery_popup')
 def discovery_popup():
-    from urlparse import urlparse
     import config
     from requests.auth import HTTPBasicAuth
     import requests
     onlineresource = request.args.get('url')
-    parsed = urlparse(onlineresource)
+    parsed = urlparse.urlparse(onlineresource)
     host = parsed.netloc
 
     if host != "127.0.0.1:8080":
@@ -255,6 +255,7 @@ def get_group_threads():
     for t in sess.query(Thread).filter_by(groupid=groupid):
         threads.append({"threadid": t.threadid, "name": t.nickname, "retired": t.retired})
     return jsonify(threads=threads)
+
 
 @app.route('/_get_thread_posts', methods=['GET'])
 def get_thread_posts():
@@ -297,8 +298,14 @@ def go_to_group():
 @app.route('/_recent_posts', methods=['GET'])
 def recent_posts():
     posts = []
-    for p, t, u in sess.query(Post, Thread,Users).join(Thread).filter_by(groupid=session['groupid']).join(Users):
-        posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname,u.username])
+    voted = vtotal = None
+    for p, t, u in sess.query(Post, Thread, Users).join(Thread).filter_by(groupid=session['groupid']).join(Users):
+        qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
+        for res in qry.all():
+            vtotal = res
+        for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=session['userid']):
+            voted = v.vote
+        posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0], voted])
     return jsonify(posts=posts)
 
 
@@ -307,7 +314,12 @@ def user_posts():
     userid = request.args.get('userid',0,type=str)
     posts = []
     for p, t in sess.query(Post, Thread).filter_by(userid=userid).join(Thread):
-        posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname])
+        qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
+        for res in qry.all():
+            vtotal = res
+        for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=session['userid']):
+            voted = v.vote
+        posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, vtotal[0], voted])
     return jsonify(posts=posts)
 
 
@@ -354,7 +366,12 @@ def get_post():
 
         # also join username and vote count
         for p, t,u in sess.query(Post, Thread,Users).filter_by(postid=original_post).join(Thread).filter_by(threadid=i).join(Users):
-            thread_data[i]['posts'].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username])
+            qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
+            for res in qry.all():
+                vtotal = res
+            for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=session['userid']):
+                voted = v.vote
+            thread_data[i]['posts'].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username], vtotal[0], voted)
     return jsonify(data=thread_data)
 
 
@@ -369,21 +386,41 @@ def zoom_to():
         bbox = "{}, {}, {}, {}".format(row[0],row[1], row[2], row[3])
     return jsonify(bounds=bbox)
 
-@app.route('/_save_post', methods=['GET'])
-def save_post():
+@app.route('/_save_object', methods=['GET'])
+def save_object():
     geom = request.args.get('jsonshp',0,type=str)
+    geom = urlparse.unquote(geom)
     query = cur.execute("SELECT count(*) FROM mapobjects where geom = ST_GeomFromText('{}',3857) AND userid = {} and date > (now() - INTERVAL '2 MINUTE');".format(geom,session["userid"]))
-    response = cur.fetchall(query)
+    response = cur.fetchall()
     for row in response:
         if row[0]>0:
             return None
     cur.execute("INSERT INTO mapobjects (geom, groupid, userid, date) VALUES (ST_GeomFromText('{}',3857), {}, {}, '{}');".format(geom,session['groupid'],session['userid'],datetime.datetime.utcnow()))
     pgconnect.commit()
     query = cur.execute("SELECT objectid FROM mapobjects WHERE userid = {0} AND date = (SELECT max(date) FROM mapobjects WHERE userid = {0});".format(session["userid"]))
-    response = cur.fetchall(query)
+    response = cur.fetchall()
     for row in response:
         return jsonify(objid=row[0])
 
+
+@app.route('/_save_thread', methods=['GET'])
+def save_thread():
+    nick = request.args.get('nick', 0, type=str)
+    name = request.args.get('name', 0, type=str)
+    ug = sess.query(UsersGroups).filter_by(userid=session['userid']).filter_by(groupid=session['groupid']).one().userid
+    if not ug:
+        return jsonify("user not permitted to do this")
+
+    t_exists = sess.query(Thread).filter_by(nickname=nick).filter_by(groupid=session['groupid'])
+    if not t_exists:
+        return jsonify("group already exists")
+    try:
+        insert_thread = Thread(nickname=nick, name=name, groupid=session['groupid'])
+        sess.add(insert_thread)
+        sess.commit()
+        return jsonify("success")
+    except:
+        return jsonify("something went wrong")
 
 if __name__ == '__main__':
     app.run()
