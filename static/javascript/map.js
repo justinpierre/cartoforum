@@ -83,7 +83,7 @@ dark = new ol.layer.Tile({
   });
 
 groupobjectssrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-url: 'http://54.226.0.216:8080/geoserver/wms',
+url: 'http://34.207.185.245:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:groupobjects', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid},
 		serverType: 'geoserver'
 	     }));if (style == 1) dark.setVisible(1);
@@ -126,7 +126,7 @@ map.on('singleclick', function(e) {
 	}
   var viewResolution = /** @type {number} */ (map.getView().getResolution());
   var url = groupobjectssrc.getGetFeatureInfoUrl( e.coordinate, viewResolution, 'EPSG:3857', {'INFO_FORMAT': 'text/html'});
-  url = "http://127.0.0.1" + url.substring(19);
+  url = "http://127.0.0.1" + url.substring(21);
   url="/_discovery_popup?url="+encodeURIComponent(url);
 
   var xmlhttp = new XMLHttpRequest();
@@ -186,7 +186,7 @@ $('#filter-by-thread').change(function(){
        }
        });
      threadsrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-     url: 'http://54.226.0.216:8080/geoserver/wms',
+     url: 'http://34.207.185.245:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:threadview', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid+';threadid:'+threadid},
 		serverType: 'geoserver'
 	     }));
@@ -275,6 +275,7 @@ function createPost(post){
     newpost += "<div class = 'postTopBar'><p class = 'fromfind'>From: " + post[5] + "<span style = 'float: right;'><input type = 'button' class = 'btn findbtn' value = '&#x1f50d;' onclick = 'zoomTo(" + post[3] + ")'></span></p>"
     newpost += "User " + post[6] + "<span style = 'float: right; font-size: 8px;'>\n Date " + post[2] + "</span></div>";
     newpost += "<div class = 'postText'>" + post[4] + "</div>";
+    newpost += "<div class = 'replyToPostContainer'>";
     if (post[8] == 0 || !post[8]) {
       newpost += "<a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",-1)'><img class = 'votebtns' src='/static/images/minus.png'></a><span class = 'vtotal'>";
       newpost += post[7] + "</span><a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",1)'><img class = 'votebtns' src='/static/images/plus.png'></a></a>";
@@ -287,6 +288,10 @@ function createPost(post){
       newpost += "<a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",0)'><img class = 'votebtns' src='../images/minus.png'></a><span class = 'vtotal'>";
       newpost += post[7] + "</span><a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",1)'><img class = 'votebtns' src='/static/images/plus.png'></a></a>";
     }
+    newpost +=  "<input type = 'button' class = 'replyToPost wbtn' value = 'reply' onclick = 'replyToPost(" + post[0] + ")' />";
+
+    newpost += "</div>";
+    newpost += "<div class = 'replyArea' id = 'reply-to-post" + post[0] + "'></div>";
 
     return newpost
 }
@@ -294,6 +299,7 @@ function createPost(post){
 function recentPosts() {
 stopDigitizing();
  $( '#createThread' ).html( '' );
+ $( '#sidebar' ).html('');
 $.getJSON($SCRIPT_ROOT + '/_recent_posts',
   function (response) {
             for (var i = 0; i<response.posts.length;i++) {
@@ -375,7 +381,8 @@ function saveThread() {
 
 function savePost(objid) {
   var text_data = $( "textarea#new-objinfo" ).val();
-  var threadid = document.getElementById("postToThreadID").value;
+  threadid = 0;
+  if ($("#postToThreadID").val()) var threadid = document.getElementById("postToThreadID").value;
   $.post($SCRIPT_ROOT + '/_save_post',{
      text: text_data,
      objid: objid,
@@ -433,7 +440,7 @@ function highlightObject(postid, objid) {
     if (selectedObjectSrc) selectedobject.setSource();
     if (objid) {
       selectedObjectSrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-      url: 'http://54.226.0.216:8080/geoserver/wms',
+      url: 'http://34.207.185.245:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:SelectedFeatures', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'objid:'+objid},
 		serverType: 'geoserver'
 	     }));
