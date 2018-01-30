@@ -83,7 +83,7 @@ dark = new ol.layer.Tile({
   });
 
 groupobjectssrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-url: 'http://34.207.185.245:8080/geoserver/wms',
+url: 'http://54.225.25.139:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:groupobjects', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid},
 		serverType: 'geoserver'
 	     }));if (style == 1) dark.setVisible(1);
@@ -126,7 +126,7 @@ map.on('singleclick', function(e) {
 	}
   var viewResolution = /** @type {number} */ (map.getView().getResolution());
   var url = groupobjectssrc.getGetFeatureInfoUrl( e.coordinate, viewResolution, 'EPSG:3857', {'INFO_FORMAT': 'text/html'});
-  url = "http://127.0.0.1" + url.substring(21);
+  url = "http://127.0.0.1" + url.substring(20);
   url="/_discovery_popup?url="+encodeURIComponent(url);
 
   var xmlhttp = new XMLHttpRequest();
@@ -186,7 +186,7 @@ $('#filter-by-thread').change(function(){
        }
        });
      threadsrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-     url: 'http://34.207.185.245:8080/geoserver/wms',
+     url: 'http://54.225.25.139:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:threadview', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid+';threadid:'+threadid},
 		serverType: 'geoserver'
 	     }));
@@ -271,10 +271,12 @@ function addInteraction() {
 }
 
 function createPost(post){
-    var newpost = "<div class = 'postContent' id = '" + post[0] + "' onClick = 'highlightOject(this.id, " + post[3] + ")'></div>";
-    newpost += "<div class = 'postTopBar'><p class = 'fromfind'>From: " + post[5] + "<span style = 'float: right;'><input type = 'button' class = 'btn findbtn' value = '&#x1f50d;' onclick = 'zoomTo(" + post[3] + ")'></span></p>"
+    var newpost = "<div class = 'postContent' id = '" + post[0] + "' onClick = 'highlightObject(this.id, " + post[3] + ")'>";
+    if (post[9]) newpost += "<div class = 'clickedPostTopBar'>";
+    else  newpost += "<div class = 'postTopBar'>";
+    newpost += "<p class = 'fromfind'>From: " + post[5] + "<span style = 'float: right;'><input type = 'button' class = 'btn findbtn' value = '&#x1f50d;' onclick = 'zoomTo(" + post[3] + ")'></span></p>"
     newpost += "User " + post[6] + "<span style = 'float: right; font-size: 8px;'>\n Date " + post[2] + "</span></div>";
-    newpost += "<div class = 'postText'>" + post[4] + "</div>";
+    newpost += "<div class = 'postText'>" + post[4] + "</div></div>";
     newpost += "<div class = 'replyToPostContainer'>";
     if (post[8] == 0 || !post[8]) {
       newpost += "<a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",-1)'><img class = 'votebtns' src='/static/images/minus.png'></a><span class = 'vtotal'>";
@@ -299,7 +301,6 @@ function createPost(post){
 function recentPosts() {
 stopDigitizing();
  $( '#createThread' ).html( '' );
- $( '#sidebar' ).html('');
 $.getJSON($SCRIPT_ROOT + '/_recent_posts',
   function (response) {
             for (var i = 0; i<response.posts.length;i++) {
@@ -350,21 +351,24 @@ function postExtent() {
 }
 
 function searchPosts() {
+$( '#createThread' ).html( '' );
+$("#posts").html("")
  var searchstring = $( "#searchPosts" ).val();
  if (searchstring=="") return;
  $( '#createThread' ).html( '' );
- var ajaxRequest = new XMLHttpRequest();
-   ajaxRequest.onreadystatechange=function() {
-   if (ajaxRequest.readyState==4 && ajaxRequest.status==200) {
-     var responsedata = ajaxRequest.responseText;
-     $( "#objid" ).html(responsedata);
-   }
-   }
-   ajaxRequest.open("GET", "serverops/searchPosts.php?groupid="+groupid+"&q="+searchstring, true);
-   ajaxRequest.send(); 
-   $( '#filter-by-user' ).val("none");
-   $( '#filter-by-thread' ).val("none");
-  groupobjects.setSource(groupobjectssrc);
+ $.getJSON($SCRIPT_ROOT + '_search_posts', {
+   q: searchstring
+ },
+ function (response){
+for (var i = 0; i<response.posts.length;i++) {
+                var newpost = createPost(response.posts[i]);
+                $("#posts").append(newpost);
+            }
+
+ });
+ $( '#filter-by-user' ).val("none");
+ $( '#filter-by-thread' ).val("none");
+ groupobjects.setSource(groupobjectssrc);
 }
 
 function saveThread() {
@@ -440,7 +444,7 @@ function highlightObject(postid, objid) {
     if (selectedObjectSrc) selectedobject.setSource();
     if (objid) {
       selectedObjectSrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-      url: 'http://34.207.185.245:8080/geoserver/wms',
+      url: 'http://54.225.25.139:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:SelectedFeatures', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'objid:'+objid},
 		serverType: 'geoserver'
 	     }));
@@ -464,7 +468,7 @@ function highlightObject(postid, objid) {
        $("#posts").html("")
        for (var key in response.data) {
          var newthread = "<div id = 'threadname'><div style = 'margin-right: 30px'>" + response.data[key].name + '</div>';
-         newthread += '<img class = "addpost" id = "addtothread' + key + '" src = {{ url_for("static",  filename="images/images/add.png" onclick = "postToThread(' + key + ')" data-toggle="tooltip" title="Add to thread"><span class = "clickinst">Click to add a post</span></div>';
+         newthread += '<img class = "addpost" id = "addtothread' + key + '" src = /static/images/add.png onclick = "postToThread(' + key + ')" data-toggle="tooltip" title="Add to thread"><span class = "clickinst">Click to add a post</span></div>';
          newthread += '<div class = "postToThread" id = "postToThread' + key + '"></div>';
          $("#posts").append(newthread);
          for (var i=0; i< response.data[key].posts.length; i++) {
@@ -472,8 +476,8 @@ function highlightObject(postid, objid) {
           $("#posts").append(newpost);
          }
        }
-       $(".clickedPostTopBar").addClass("postTopBar");
-       $(".clickedPostTopBar").removeClass("clickedPostTopBar");
+       //$(".clickedPostTopBar").addClass("postTopBar");
+       //$(".clickedPostTopBar").removeClass("clickedPostTopBar");
        if (!postid) {
          $('#sidebar').animate({
            scrollTop: $(".clickedPostTopBar").offset().top-140

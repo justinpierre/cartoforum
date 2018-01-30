@@ -344,17 +344,16 @@ def get_post():
                 clicked_post.append(p.postid)
     else:
         clicked_post.append(id)
-        t = sess.query(Thread).filter_by(threadid=id).one().threadid
+        t = sess.query(Post).filter_by(postid=id).one().threadid
         clicked_thread[t] = [id]
     # figure out every thread, recursive conversation list, clicked or not, votes
-
     for i, clickedid in clicked_thread.iteritems():
         thread_name = sess.query(Thread).filter_by(threadid=i).one().nickname
         thread_data[i] = {"name": thread_name}
         thread_data[i]['posts'] = []
         if i in retired_threads:
             thread_data[i]['retired'] = True
-
+        # set next_post equal to the clicked id and assume it is a response to something
         next_post = clickedid[0]
         responseto = True
         while responseto:
@@ -364,34 +363,47 @@ def get_post():
                 else:
                     responseto = False
         vtotal = voted = None
-        # also join username and vote count
-        for p, t,u in sess.query(Post, Thread,Users).filter_by(postid=next_post).join(Thread).filter_by(threadid=i).join(Users):
+        # now next_post is the original post id
+        for p, t, u in sess.query(Post, Thread,Users).filter_by(postid=next_post).join(Thread).join(Users):
             qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
             for res in qry.all():
                 vtotal = res
             for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=session['userid']):
                 voted = v.vote
-            thread_data[i]['posts'].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0], voted])
-
+            thread_data[i]['posts'].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0], voted,p.postid in clicked_post])
             responseto = True
             while responseto:
-                p = sess.query(Post).filter_by(responseto=next_post).all()
-                if not p:
+                checkresponse = sess.query(Post).filter_by(responseto=next_post).all()
+                if not checkresponse:
                     responseto = False
-                for p in sess.query(Post).filter_by(responseto=next_post):
-                    next_post = p.postid
-                    for p, t, u in sess.query(Post, Thread, Users).filter_by(postid=next_post).join(Thread).filter_by(
-                            threadid=i).join(Users):
-                        qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
+                for p2 in sess.query(Post).filter_by(responseto=next_post):
+                    next_post = p2.postid
+                    for p3, t3, u3 in sess.query(Post, Thread, Users).filter_by(postid=next_post).join(Thread).join(Users):
+                        qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p3.postid)
                         for res in qry.all():
                             vtotal = res
-                        for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=session['userid']):
+                        for v in sess.query(Votes).filter_by(postid=p3.postid).filter_by(userid=session['userid']):
                             voted = v.vote
                         thread_data[i]['posts'].append(
-                            [p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0],
-                             voted])
+                            [p3.postid, p3.userid, p3.date, p3.objectid, p3.postcontent, t3.nickname, u3.username, vtotal[0],
+                             voted, p3.postid in clicked_post])
 
     return jsonify(data=thread_data)
+
+
+@app.route('/_search_posts', methods = ['GET'])
+def search_posts():
+    posts = []
+    qstr = request.args.get('q', 0, type=str)
+    voted = vtotal = None
+    for p, t, u in sess.query(Post, Thread, Users).order_by(Post.date).filter(Post.postcontent.like("%{}%".format(qstr))).join(Thread).filter_by(groupid=session['groupid']).join(Users):
+        qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
+        for res in qry.all():
+            vtotal = res
+        for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=session['userid']):
+            voted = v.vote
+        posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0], voted])
+    return jsonify(posts=posts)
 
 
 @app.route('/_zoom_to',methods=['GET'])
@@ -463,6 +475,7 @@ def save_thread():
         return jsonify("success")
     except:
         return jsonify("something went wrong")
+
 
 if __name__ == '__main__':
     app.run()
