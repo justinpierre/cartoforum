@@ -11,6 +11,7 @@ import hashlib
 import config
 import datetime
 import urlparse
+import re
 
 import sqlalchemy
 from sqlalchemy import create_engine
@@ -113,6 +114,12 @@ def index():
         return render_template('groupselect.html', username=username)
 
 
+@app.route('/groupselect', methods=['POST'])
+def group_select():
+    username = sess.query(Users).filter_by(userid=session['userid']).one().username
+    return render_template('groupselect.html', username=username)
+
+
 @app.route('/login', methods=['POST'])
 def do_login():
     query = "SELECT userid, password FROM users WHERE username = '{}'".format(request.form['username'])
@@ -130,6 +137,11 @@ def do_login():
     pgconnect.commit()
     return index()
 
+@app.route('/logout', methods=['POST'])
+def do_logout():
+    session['logged_in'] = False
+    session['userid'] = None
+    return index()
 
 @app.route('/_get_user_groups', methods=['GET'])
 def get_user_groups():
@@ -403,6 +415,28 @@ def search_posts():
         for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=session['userid']):
             voted = v.vote
         posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0], voted])
+    return jsonify(posts=posts)
+
+
+@app.route('/_posts_by_extent', methods=['GET'])
+def posts_by_extent():
+    posts = []
+    extent = request.args.get('ext', 0, type=str)
+    extent = re.sub(' ',',',extent)
+    for geometrytype in ['POINT','LINE','POLYGON']:
+        cur.execute("SELECT posts.postid, posts.userid, posts.date, posts.objectid, posts.postcontent, thread.nickname, users.username "
+                    "FROM posts INNER JOIN thread on thread.threadid = posts.threadid INNER JOIN mapobjects on posts.objectid = mapobjects.objectid "
+                    "INNER JOIN users on users.userid = posts.userid WHERE posts.groupid = {} and ST_Within(mapobjects.geom,ST_MakeEnvelope({}, 3857)) "
+                    "AND ST_AsText(geom) like '{}%' Order by date DESC;".format(session['groupid'],extent,geometrytype))
+        response = cur.fetchall()
+        for row in response:
+            voted = vtotal = None
+            qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=row[0])
+            for res in qry.all():
+                vtotal = res
+            for v in sess.query(Votes).filter_by(postid=row[0]).filter_by(userid=session['userid']):
+                voted = v.vote
+            posts.append([row[0], row[1], row[2], row[3], row[4], row[5], row[6], vtotal[0], voted])
     return jsonify(posts=posts)
 
 

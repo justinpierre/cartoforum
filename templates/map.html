@@ -71,11 +71,11 @@ $.ajaxSetup({ cache: false });
 </div>
 <footer>
 <span style = "padding-left: 80px;">{{ username }}
-<form class = "inlineform" action = "logout.php" method = "POST">
+<form class = "inlineform" action = "/logout" method = "POST">
 <input type = "submit" class = "btn bbtn" value = "logout" />
 </form>
 <span style = "padding-left: 10px">{{ groupname }}</span>
-<form class = "inlineform" action = "group_select.php" method = "POST">
+<form class = "inlineform" action = "/groupselect" method = "POST">
 <input type = "submit" class = "btn bbtn" value = "group select" />
 </form>
 </span>

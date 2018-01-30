@@ -234,7 +234,7 @@ recentPosts();
 
 //style toggle
 function styleChange(color) {
-  $("#selectedStyle").attr("src","images/"+color+".gif");
+  $("#selectedStyle").attr("src","static/images/"+color+".gif");
   groupobjectssrc.updateParams({STYLES: color});
   if (threadsrc) threadsrc.updateParams({STYLES: color});
   $( 'div#style-select-options' ).hide('fast');
@@ -336,15 +336,15 @@ function postExtent() {
   var bounds = bottomLeft[0] + " " + bottomLeft[1] + " " + topRight[0] + " " + topRight[1];
 
  $( '#createThread' ).html( '' );
- var ajaxRequest = new XMLHttpRequest();
-   ajaxRequest.onreadystatechange=function() {
-   if (ajaxRequest.readyState==4 && ajaxRequest.status==200) {
-     var responsedata = ajaxRequest.responseText;
-     $( "#objid" ).html(responsedata);
-   }
-   }
-   ajaxRequest.open("GET", "serverops/postExtent.php?groupid="+groupid+"&b="+bounds, true);
-   ajaxRequest.send(); 
+ $( '#posts').html("");
+ $.getJSON($SCRIPT_ROOT + '_posts_by_extent',
+ {ext: bounds},
+ function (response) {
+    for (var i = 0; i<response.posts.length;i++) {
+                var newpost = createPost(response.posts[i]);
+                $("#posts").append(newpost);
+            }
+ });
    $( '#filter-by-user' ).val("none");
    $( '#filter-by-thread' ).val("none");
   groupobjects.setSource(groupobjectssrc);
