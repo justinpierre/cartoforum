@@ -27,13 +27,19 @@
         <link rel="stylesheet" href = "{{ url_for('static', filename='styles/index.css') }}" type = "text/css">
     </head>
     <body>
-        <header id = "loginbar">
-            <div id = "topbuttons">
+
+        <div id = "content">
+            <div id = "loginbar">
+            <h1 id = "title">cartoforum</h1>
+                <div id = "topbuttons">
                 <input type = "button" class = "wbtn" value = "sign up" onClick = "showAcctDiv()">
                 <input type = "button" class = "wbtn" value = "forgot password" onClick = "showPwDiv()">
             </div>
-            <h1 id = "title">cartoforum</h1>
-            <a id = "twittersignin" href = "https://cartoforum.com/twitteroauth/twitter_login.php"><img src = "https://g.twimg.com/dev/sites/default/files/images_documentation/sign-in-with-twitter-gray.png"></a>
+
+            <form id = "twittersignin" action = "/twitter-oauth" method = "POST">
+                <input type = "submit" id = 'twittersubmit' value = '' />
+            </form>
+
             {% block body %}
             {% if session['logged_in'] %}
             <p>already logged in</p>
@@ -46,8 +52,7 @@
             </form>
                 {% endif %}
                 {% endblock %}
-        </header>
-        <div id = "content">
+        </div>
             <div id = "createAccount">
                 <a href="#" class = "closeWindow" onclick = "$( '#createAccount' ).hide( 'fast' )">x</a>
                 <form method = "POST" action = "account/create_account.php">
@@ -64,20 +69,7 @@
             </div>
             <div id = "description">
             </div>
-            <img class = "torontoimg" src = "{{ url_for('static', filename='images/torontimg.jpg') }}" />
-            <h1 style = "width: 100%; text-align: center; padding-top: 40px;">- Examples -</h1>
-            <div id = "examples">
-                <a href = "https://cartoforum.com/discovery/map.php?groupname=3"><img class = "exampleimg" src = "{{ url_for('static', filename='images/parkdale411.png') }}"></a>
-                <a href = "https://cartoforum.com/bikelanes"><img class = "exampleimg" src = "{{ url_for('static', filename='images/bikelanesTO.png') }}"></a>
-            </div>
-            <h1 style = "width: 100%; text-align: center; padding-top: 50px;">- Tips -</h1>
-            <p style = "width: 100%; text-align: center;">
-                <a href = "http://blog.justinpierre.ca/index.php/8-cartoforum/4-adding-data-to-your-group-as-administrator">Adding a bunch of data to your group at once</a>
-            </p>
-            <h1 style = "width: 100%; text-align: center; padding-top: 50px;">- Mentions -</h1>
-                <p style = "width: 100%; text-align: center;">
-                <a href = "http://torontoist.com/2016/02/2016-cycling-preview/">http://torontoist.com/2016/02/2016-cycling-preview/</a>
-            </p>
+
         </div>
         <footer>
             </span>

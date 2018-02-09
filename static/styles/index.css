@@ -12,11 +12,17 @@ color: #a9a9a9;
 #loginbar {
 background-color: #ffffff;
 color: #11192d;
-height: 70px;
-width: 100%;
+top: 100px;
+right: 25px;
+width: 20%;
+float: right;
 padding: 0px 0px 25px 0px;
 -webkit-border-radius: 20;
 -moz-border-radius: 20;
+}
+
+#twittersubmit {
+background: no-repeat url("https://g.twimg.com/dev/sites/default/files/images_documentation/sign-in-with-twitter-gray.png");
 }
 
 #twittersignin {
@@ -39,7 +45,7 @@ float: right;
 position: absolute;
 top: 0px;
 right: 0px;
-font-size: 9px;
+font-size: 12px;
 font-family: Arial;
 }
 
@@ -50,9 +56,12 @@ font-family: Arial;
 #content {
 position: fixed;
 width: 100%;
-top: 105px;
 bottom: 35px;
 overflow: auto;
+background-image: url("/static/images/torontimg.jpg");
+top: 0px;
+background-size: cover;
+
 }
 
 h1#title {

@@ -284,16 +284,19 @@ function createPost(post){
     }
     if (post[8] == 1) {
       newpost += "<a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",-1)'><img class = 'votebtns' src='/static/images/minus.png'></a><span class = 'vtotal'>";
-      newpost += post[7] + "</span><a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",0)'><img class = 'votebtns' src='/static/images/plus.png'></a></a>";
+      newpost += post[7] + "</span><a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",0)'><img class = 'votebtns' src='/static/images/plusc.png'></a></a>";
     }
     if (post[8] == -1) {
-      newpost += "<a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",0)'><img class = 'votebtns' src='../images/minus.png'></a><span class = 'vtotal'>";
+      newpost += "<a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",0)'><img class = 'votebtns' src='/static/images/minusc.png'></a><span class = 'vtotal'>";
       newpost += post[7] + "</span><a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",1)'><img class = 'votebtns' src='/static/images/plus.png'></a></a>";
     }
     newpost +=  "<input type = 'button' class = 'replyToPost wbtn' value = 'reply' onclick = 'replyToPost(" + post[0] + ")' />";
 
     newpost += "</div>";
-    newpost += "<div class = 'replyArea' id = 'reply-to-post" + post[0] + "'></div>";
+    newpost += "<div class = 'replyArea' id = 'reply-to-post" + post[0] + "'>";
+    console.log(post[10]);
+    if (post[10]==true) newpost += "<input type = 'button' class = 'replyToPost wbtn' value = 'delete' onclick = 'deletePost(" + post[0] + ")' />";
+    newpost += "</div>";
 
     return newpost
 }
@@ -601,15 +604,12 @@ $( "#addtothread"+threadid).on({
 
 
 function updateVote(user,post,vote) {
-  var ajaxRequest = new XMLHttpRequest();
-  ajaxRequest.onreadystatechange=function() {
-  if (ajaxRequest.readyState==4 && ajaxRequest.status==200) {
-    highlightObject(ajaxRequest.responseText);
-  }
-  }
-  var querystring = "?u="+user+"&p="+post+"&v="+vote;
-  ajaxRequest.open("GET", "serverops/saveVote.php"+querystring, true);
-  ajaxRequest.send();
+  $.getJSON($SCRIPT_ROOT + '/_cast_vote', {
+    post: post,
+    vote: vote
+    }, function(response) {
+      highlightObject(post,null)
+    })
   }
 
 function zoomTo(objid) {

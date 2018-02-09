@@ -3,7 +3,7 @@
 __author__ = u'justinpierre'
 
 from flask import Flask
-from flask import render_template, jsonify, flash, redirect, request, session, abort
+from flask import render_template, jsonify, flash, redirect, request, session, abort, url_for
 
 
 import psycopg2
@@ -12,6 +12,8 @@ import config
 import datetime
 import urlparse
 import re
+from flask_oauth import OAuth
+
 
 import sqlalchemy
 from sqlalchemy import create_engine
@@ -19,6 +21,16 @@ from sqlalchemy import Column, String, Integer, Date, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import relationship
+
+oauth = OAuth()
+twitter = oauth.remote_app('twitter',
+                           base_url='https://api.twitter.com/1/',
+                           request_token_url='https://api.twitter.com/oauth/request_token',
+                           access_token_url='https://api.twitter.com/oauth/access_token',
+                           authorize_url='https://api.twitter.com/oauth/authorize',
+                           consumer_key=config.ckey,
+                           consumer_secret=config.csecret
+                           )
 
 db_string = "postgres://{}:{}@localhost:5432/{}".format(config.dbusername,config.dbpassword,config.dbname)
 db = create_engine(db_string)
@@ -32,6 +44,16 @@ class Users(base):
     email = Column(String)
     verified = Column(Boolean)
     twitterid = Column(Integer)
+
+
+class TwitterUsers(base):
+    __tablename__ = 'twitterusers'
+    id = Column(Integer,primary_key=True)
+    oauth_provider = Column(String)
+    oauth_uid = Column(String)
+    oauth_token = Column(String)
+    oauth_secret = Column(String)
+    username = Column(String)
 
 
 class Post(base):
@@ -142,6 +164,59 @@ def do_logout():
     session['logged_in'] = False
     session['userid'] = None
     return index()
+
+
+@app.route('/twitter-oauth', methods=['POST'])
+def twitter_oauth():
+    if session.has_key('twitter_token'):
+        del session['twitter_token']
+    return twitter.authorize(callback=url_for('oauth_authorized',
+                             next=request.args.get('next') or request.referrer or None))
+
+
+@app.route('/oauth-authorized')
+@twitter.authorized_handler
+def oauth_authorized(resp):
+    next_url = request.args.get('next') or url_for('index')
+    if resp is None:
+        flash(u'You denied the request to sign in.')
+        return redirect(next_url)
+
+    session['twitter_token'] = (
+        resp['oauth_token'],
+        resp['oauth_token_secret']
+    )
+    session['twitter_user'] = resp['screen_name']
+    twitteruser = sess.query(TwitterUsers).filter_by(username=resp['screen_name']).count()
+    print(twitteruser)
+
+    flash('You were signed in as %s' % resp['screen_name'])
+    if twitteruser == 0:
+        tu = TwitterUsers(oauth_provider='twitter', username=resp['screen_name'], oauth_uid=resp['user_id'],
+                          oauth_token=resp['oauth_token'], oauth_secret=resp['oauth_token_secret'])
+        sess.add(tu)
+        sess.commit()
+
+    else:
+        tu = sess.query(TwitterUsers).filter_by(username=resp['screen_name']).first()
+        tu.oauth_token = resp['oauth_token']
+        tu.oauth_secret = resp['oauth_token_secret']
+        sess.commit()
+    userquery = sess.query(Users).filter_by(username='@{}'.format(resp['screen_name'])).count()
+    if userquery == 0:
+        newuser = Users(username='@{}'.format(resp['screen_name']), password='twitter_user', twitterid=resp['user_id'])
+        sess.add(newuser)
+        sess.commit()
+    tulogged = sess.query(Users).filter_by(username='@{}'.format(resp['screen_name'])).one()
+    session['userid'] = tulogged.userid
+    session['logged_in'] = True
+    return render_template('groupselect.html', username=resp['screen_name'])
+
+
+@twitter.tokengetter
+def get_twitter_token(token=None):
+    return session.get('twitter_token')
+
 
 @app.route('/_get_user_groups', methods=['GET'])
 def get_user_groups():
@@ -317,7 +392,7 @@ def recent_posts():
             vtotal = res
         for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=session['userid']):
             voted = v.vote
-        posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0], voted])
+        posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0] or 0, voted or 0])
     return jsonify(posts=posts)
 
 
@@ -385,20 +460,23 @@ def get_post():
             thread_data[i]['posts'].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0], voted,p.postid in clicked_post])
             responseto = True
             while responseto:
-                checkresponse = sess.query(Post).filter_by(responseto=next_post).all()
-                if not checkresponse:
-                    responseto = False
                 for p2 in sess.query(Post).filter_by(responseto=next_post):
                     next_post = p2.postid
+                    checkresponse = sess.query(Post).filter_by(responseto=next_post).count()
+                    if checkresponse == 0:
+                        responseto = False
                     for p3, t3, u3 in sess.query(Post, Thread, Users).filter_by(postid=next_post).join(Thread).join(Users):
+                        deleteable = False
                         qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p3.postid)
                         for res in qry.all():
                             vtotal = res
                         for v in sess.query(Votes).filter_by(postid=p3.postid).filter_by(userid=session['userid']):
                             voted = v.vote
+                        if p3.userid == session['userid'] and not responseto:
+                            deleteable = True
                         thread_data[i]['posts'].append(
                             [p3.postid, p3.userid, p3.date, p3.objectid, p3.postcontent, t3.nickname, u3.username, vtotal[0],
-                             voted, p3.postid in clicked_post])
+                             voted, p3.postid in clicked_post, deleteable])
 
     return jsonify(data=thread_data)
 
@@ -509,6 +587,24 @@ def save_thread():
         return jsonify("success")
     except:
         return jsonify("something went wrong")
+
+
+@app.route('/_cast_vote', methods=['GET'])
+def cast_vote():
+    post = request.args.get('post', 0, type=int)
+    vote = request.args.get('vote',0, type=int)
+    v = sess.query(Votes).filter_by(userid=session['userid']).filter_by(postid=post).count()
+    if v > 0:
+        v = sess.query(Votes).filter_by(userid=session['userid']).filter_by(postid=post).first()
+        v.vote = vote
+        sess.commit()
+        return jsonify('vote updated')
+    else:
+        v = Votes(postid=post, userid=session['userid'], vote=vote)
+        sess.add(v)
+        sess.commit()
+        return jsonify('new vote cast')
+
 
 
 if __name__ == '__main__':
