@@ -106,6 +106,28 @@ class Votes(base):
     votes_users = relationship("Users", foreign_keys=[userid])
 
 
+class InviteMe(base):
+    __tablename__ = 'inviteme'
+    requestid = Column(Integer, primary_key=True)
+    userid = Column(Integer, ForeignKey("users.userid"))
+    groupid = Column(Integer, ForeignKey("groups.groupid"))
+    date = Column(Date)
+    accepted = Column(Boolean)
+    inviteme_users = relationship("Users",foreign_keys=[userid])
+    inviteme_group = relationship("Group",foreign_keys=[groupid])
+
+class GroupRequests(base):
+    __tablename__= 'grouprequests'
+    requestid = Column(Integer,primary_key=True)
+    requester = Column(Integer, ForeignKey("users.userid"))
+    invitee = Column(Integer)
+    groupid = Column(Integer,ForeignKey("groups.groupid"))
+    dateissued = Column(Date)
+    complete = Column(Boolean)
+    grouprequests_users = relationship("Users",foreign_keys=[requester])
+    grouprequests_group = relationship("Group",foreign_keys=[groupid])
+
+
 app = Flask(__name__)
 
 Session = sessionmaker(db)
@@ -124,9 +146,6 @@ except:
 cur = pgconnect.cursor()
 
 
-
-
-
 @app.route('/groupselect', methods=['POST'])
 def group_select():
     username = sess.query(Users).filter_by(userid=session['userid']).one().username
@@ -142,7 +161,7 @@ def create_account():
     hashpass = m.hexdigest()
     emailexists = sess.query(Users).filter_by(email=email).count()
     if emailexists > 0:
-        return user_management.index()
+        return index()
     else:
         newuser = Users(email=email, password=hashpass,username=email)
         sess.add(newuser)
@@ -179,14 +198,14 @@ def select_username():
     u = sess.query(Users).filter_by(userid=session['userid']).first()
     u.username = username
     sess.commit()
-    return user_management.index()
+    return index()
 
 
 @app.route('/logout', methods=['POST'])
 def do_logout():
     session['logged_in'] = False
     session['userid'] = None
-    return user_management.index()
+    return index()
 
 
 @app.route('/twitter-oauth', methods=['POST'])
@@ -259,17 +278,30 @@ def get_group_users():
         users.append({"name":u.username, "userid": u.userid})
     return jsonify(users=users)
 
+@app.route('/invite_user', methods=['GET'])
+def invite_user():
+    invitee = request.args.get('invitee', type=str)
+    # try:
+    inviteeuserid = sess.query(Users).filter_by(username=invitee).one().userid
+    # except:
+        # return jsonify(response="user doesn't exist")
+    inviteexists = sess.query(GroupRequests).filter_by(invitee=inviteeuserid).filter_by(groupid=session['groupid']).count()
+    if inviteexists > 0:
+        return jsonify(response='invite already exists')
+    useringroup = sess.query(UsersGroups).filter_by(groupid=session['groupid']).filter_by(userid=inviteeuserid).count()
+    if useringroup>0:
+        return jsonify(response='user already in group')
+    newinvite = GroupRequests(requester=session['userid'],invitee=inviteeuserid,groupid=session['groupid'],dateissued=datetime.datetime.utcnow(),complete='f')
+    sess.add(newinvite)
+    sess.commit()
+    return jsonify(response='invite sent')
+
 
 @app.route('/_get_user_invites', methods=['GET'])
 def get_user_invites():
     invreq = {'invites': [], 'requests': []}
-    cur.execute("SELECT grouprequests.requestid, users.username, groups.groupname, grouprequests.dateissued "
-                "FROM grouprequests INNER JOIN users ON users.userid = grouprequests.requester "
-                "JOIN groups ON groups.groupid = grouprequests.groupid  "
-                "WHERE complete = false AND invitee = '{}'".format(session['userid']))
-    response = cur.fetchall()
-    for row in response:
-        invreq['invites'].append({"requestid": row[0], "requester": row[1], "group": row[2], "date": row[3]})
+    for gr,g,u in sess.query(GroupRequests,Group,Users).filter_by(invitee=session['userid']).join(Group).join(Users):
+        invreq['requests'].append({"requestid": gr.requestid,"requester":u.username,"group":g.groupname,"date":gr.dateissued})
 
     cur.execute("SELECT inviteme.requestid, users.username, groups.groupname, inviteme.date "
                 "FROM inviteme INNER JOIN users ON users.userid = inviteme.userid "
@@ -361,7 +393,7 @@ def go_to_admin():
     if uid == 1:
         return render_template("admin.html", groupid=groupid)
     else:
-        return user_management.index()
+        return index()
 
 
 @app.route('/_get_group_threads', methods=['GET'])
@@ -382,7 +414,6 @@ def get_thread_posts():
         for p,t,u in sess.query(Post,Thread,Users).filter_by(threadid=threadid).join(Thread).join(Users):
             threads[len(threads)-1]["posts"].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username])
     return jsonify(threads=threads)
-
 
 
 @app.route('/map', methods=['POST'])

@@ -135,7 +135,7 @@ function getUserGroups() {
                 newrow.append(newcell);
                 if (data.groups[i]['admin'] == "true") {
                     var newcell = $("<td></td>");
-                    var adminForm = $("<td><form method = 'POST' action = '/admin'></form></td>");
+                    var adminForm = $("<form method = 'POST' action = '/admin'></form>");
                     adminForm.append('<input type = "hidden" name = "groupid" value = "'+ data.groups[i]['groupid'] + '">');
                     adminForm.append('<input type = "submit" class = "bbtn btn" value = "admin">');
                     newcell.append(adminForm);
