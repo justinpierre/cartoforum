@@ -124,16 +124,7 @@ except:
 cur = pgconnect.cursor()
 
 
-@app.route('/')
-def index():
-    if not session.get('logged_in'):
-        return render_template('index.html')
-    else:
-        cur.execute("SELECT username from users where userid = {}".format(session['userid']))
-        response = cur.fetchall()
-        for row in response:
-            username = row[0]
-        return render_template('groupselect.html', username=username)
+
 
 
 @app.route('/groupselect', methods=['POST'])
@@ -141,23 +132,6 @@ def group_select():
     username = sess.query(Users).filter_by(userid=session['userid']).one().username
     return render_template('groupselect.html', username=username)
 
-
-@app.route('/login', methods=['POST'])
-def do_login():
-    query = "SELECT userid, password FROM users WHERE username = '{}'".format(request.form['username'])
-    cur.execute(query)
-    response = cur.fetchall()
-    for row in response:
-        m = hashlib.sha256()
-        m.update(request.form['password'].encode("utf-8"))
-        hashpwd = m.hexdigest()
-        if row[1].strip() == hashpwd or row[1].strip()==hashpwd[0:59]:
-            session['logged_in'] = True
-            session['userid'] = row[0]
-        else:
-            flash('wrong password')
-    pgconnect.commit()
-    return index()
 
 @app.route('/create_account', methods=['POST'])
 def create_account():
@@ -168,7 +142,7 @@ def create_account():
     hashpass = m.hexdigest()
     emailexists = sess.query(Users).filter_by(email=email).count()
     if emailexists > 0:
-        return index()
+        return user_management.index()
     else:
         newuser = Users(email=email, password=hashpass,username=email)
         sess.add(newuser)
@@ -176,20 +150,43 @@ def create_account():
         session['userid'] = sess.query(Users).filter_by(email=email).one().userid
         return render_template('accountsetup.html', email=email)
 
+
+@app.route('/')
+def index():
+    if not session.get('logged_in'):
+        return render_template('index.html')
+    else:
+        username = sess.query(Users).filter_by(userid=session['userid']).one().username
+        return render_template('groupselect.html', username=username)
+
+
+@app.route('/login', methods=['POST'])
+def do_login():
+    for u in sess.query(Users).filter_by(username=request.form['username']):
+        m = hashlib.sha256()
+        m.update(request.form['password'].encode("utf-8"))
+        hashpwd = m.hexdigest()
+        if u.password.strip() == hashpwd or u.password.strip()==hashpwd[0:59]:
+            session['logged_in'] = True
+            session['userid'] = u.userid
+        else:
+            flash('wrong password')
+    return index()
+
 @app.route('/select_username', methods = ['POST'])
 def select_username():
     username = request.form['username']
     u = sess.query(Users).filter_by(userid=session['userid']).first()
     u.username = username
     sess.commit()
-    return index()
+    return user_management.index()
 
 
 @app.route('/logout', methods=['POST'])
 def do_logout():
     session['logged_in'] = False
     session['userid'] = None
-    return index()
+    return user_management.index()
 
 
 @app.route('/twitter-oauth', methods=['POST'])
@@ -364,7 +361,7 @@ def go_to_admin():
     if uid == 1:
         return render_template("admin.html", groupid=groupid)
     else:
-        return index()
+        return user_management.index()
 
 
 @app.route('/_get_group_threads', methods=['GET'])
