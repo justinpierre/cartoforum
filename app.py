@@ -151,13 +151,39 @@ def do_login():
         m = hashlib.sha256()
         m.update(request.form['password'].encode("utf-8"))
         hashpwd = m.hexdigest()
-        if row[1] == '\\x{}'.format(hashpwd):
+        if row[1].strip() == hashpwd or row[1].strip()==hashpwd[0:59]:
             session['logged_in'] = True
             session['userid'] = row[0]
         else:
             flash('wrong password')
     pgconnect.commit()
     return index()
+
+@app.route('/create_account', methods=['POST'])
+def create_account():
+    email = request.form['email']
+    password = request.form['password']
+    m=hashlib.sha256()
+    m.update(password.encode("utf-8"))
+    hashpass = m.hexdigest()
+    emailexists = sess.query(Users).filter_by(email=email).count()
+    if emailexists > 0:
+        return index()
+    else:
+        newuser = Users(email=email, password=hashpass,username=email)
+        sess.add(newuser)
+        sess.commit()
+        session['userid'] = sess.query(Users).filter_by(email=email).one().userid
+        return render_template('accountsetup.html', email=email)
+
+@app.route('/select_username', methods = ['POST'])
+def select_username():
+    username = request.form['username']
+    u = sess.query(Users).filter_by(userid=session['userid']).first()
+    u.username = username
+    sess.commit()
+    return index()
+
 
 @app.route('/logout', methods=['POST'])
 def do_logout():
@@ -227,6 +253,14 @@ def get_user_groups():
         else:
             groups.append({"name": g.groupname, "groupid": g.groupid, "admin": "false"})
     return jsonify(groups=groups)
+
+
+@app.route('/_get_group_users', methods=['GET'])
+def get_group_users():
+    users = []
+    for u, ug in sess.query(Users, UsersGroups).join(UsersGroups).filter_by(groupid=session['groupid']):
+        users.append({"name":u.username, "userid": u.userid})
+    return jsonify(users=users)
 
 
 @app.route('/_get_user_invites', methods=['GET'])
@@ -325,14 +359,12 @@ def discovery_popup():
 
 @app.route('/admin', methods=['POST'])
 def go_to_admin():
-    groupid = request.form['gropuid']
-    cur.execute("SELECT userid, username from groups where groupid = {}".format(groupid))
-    response = cur.fetchall()
-    for row in response:
-        if row[0] != session['userid']:
-            return index()
-        else:
-            return render_template("admin.html",groupid=groupid,username=row[1])
+    session['groupid'] = groupid = request.form['groupid']
+    uid = sess.query(Group).filter_by(groupid=groupid).filter_by(userid=session['userid']).count()
+    if uid == 1:
+        return render_template("admin.html", groupid=groupid)
+    else:
+        return index()
 
 
 @app.route('/_get_group_threads', methods=['GET'])
@@ -354,13 +386,6 @@ def get_thread_posts():
             threads[len(threads)-1]["posts"].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username])
     return jsonify(threads=threads)
 
-
-@app.route('/_get_group_users', methods=['GET'])
-def get_group_users():
-    group_users = {}
-    for ug, u in sess.query(UsersGroups,Users).filter_by(groupid=session['groupid']).join(Users):
-        group_users[ug.userid] = u.username
-    return jsonify(group_users=group_users)
 
 
 @app.route('/map', methods=['POST'])
@@ -400,13 +425,13 @@ def recent_posts():
 def user_posts():
     userid = request.args.get('userid',0,type=str)
     posts = []
-    for p, t in sess.query(Post, Thread).filter_by(userid=userid).join(Thread):
+    for p, t, u in sess.query(Post, Thread, Users).filter_by(userid=userid).join(Thread).join(Users):
         qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
         for res in qry.all():
             vtotal = res
         for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=session['userid']):
             voted = v.vote
-        posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, vtotal[0], voted])
+        posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0] or 0, voted or 0])
     return jsonify(posts=posts)
 
 

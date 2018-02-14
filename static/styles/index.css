@@ -12,23 +12,23 @@ color: #a9a9a9;
 #loginbar {
 background-color: #ffffff;
 color: #11192d;
+position: absolute;
 top: 100px;
 right: 25px;
 width: 20%;
 float: right;
-padding: 0px 0px 25px 0px;
+padding: 25px;;
 -webkit-border-radius: 20;
 -moz-border-radius: 20;
 }
 
 #twittersubmit {
-background: no-repeat url("https://g.twimg.com/dev/sites/default/files/images_documentation/sign-in-with-twitter-gray.png");
+
 }
 
 #twittersignin {
-position: absolute;
 padding-top: 53px;
-right: 345px;
+width: 50px;
 }
 
 #loginform {
@@ -45,7 +45,7 @@ float: right;
 position: absolute;
 top: 0px;
 right: 0px;
-font-size: 12px;
+font-size: 15px;
 font-family: Arial;
 }
 
@@ -98,18 +98,6 @@ opacity: 0.45;
 }
 
 #createAccount {
-display: none;
-position: fixed;
-top: 145px;
-right: 100px;
-padding: 5px 10px 25px 10px;
-border-radius: 10px;
--webkit-border-radius: 20;
--moz-border-radius: 20;
-border: 2px solid #b6b6b6;
-box-shadow: 5px 5px 4px #888888;
-z-index: 1000;
-background-color: #f3f3f3;
 }
 
 #forgotPassword {

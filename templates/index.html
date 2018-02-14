@@ -31,42 +31,29 @@
         <div id = "content">
             <div id = "loginbar">
             <h1 id = "title">cartoforum</h1>
-                <div id = "topbuttons">
-                <input type = "button" class = "wbtn" value = "sign up" onClick = "showAcctDiv()">
-                <input type = "button" class = "wbtn" value = "forgot password" onClick = "showPwDiv()">
-            </div>
-
-            <form id = "twittersignin" action = "/twitter-oauth" method = "POST">
-                <input type = "submit" id = 'twittersubmit' value = '' />
-            </form>
-
             {% block body %}
             {% if session['logged_in'] %}
             <p>already logged in</p>
             {% else %}
             <form id = "loginform" method = "POST" action = "/login">
                 <input type = "username" name = "username" placeholder = "username">
-                <br>
                 <input type = "password" name = "password" placeholder = "password">
                 <input type = "submit" class = 'bbtn btn' value = "login">
             </form>
+                <img src="https://g.twimg.com/dev/sites/default/files/images_documentation/sign-in-with-twitter-gray.png" id = "twittersubmit" onclick = '$("#twittersignin").submit()'>
+            <form id = "twittersignin" action = "/twitter-oauth" method = "POST">
+
+            </form>
+                <h1>Create Account</h1>
+                <form id = "createAccount" method = "POST" action = "/create_account">
+                    <input type = "email" name = "email" placeholder = "enter your email address">
+                    <input type = "password" name = "password" placeholder = "select a password">
+                    <input type = "submit" value = "continue" class="btn bbtn">
+                </form>
                 {% endif %}
                 {% endblock %}
         </div>
-            <div id = "createAccount">
-                <a href="#" class = "closeWindow" onclick = "$( '#createAccount' ).hide( 'fast' )">x</a>
-                <form method = "POST" action = "account/create_account.php">
-                <input type = "text" name = "username" size = "30" placeholder = "What username do you want?"><br>
-                <input type = "submit" class = 'wbtn btn' value = "create">
-                </form>
-            </div>
-            <div id = "forgotPassword">
-                <a href="#" class = "closeWindow" onclick = "$( '#forgotPassword' ).hide( 'fast' )">x</a>
-                <form method = "POST" action = "account/getpassword.php">
-                    <input type = "text" name = "email" placeholder = "enter your email"><br>
-                    <input type = "submit" class = 'wbtn btn' value = "reset my password">
-                </form>
-            </div>
+
             <div id = "description">
             </div>
 

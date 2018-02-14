@@ -83,7 +83,7 @@ dark = new ol.layer.Tile({
   });
 
 groupobjectssrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-url: 'http://54.225.25.139:8080/geoserver/wms',
+url: 'http://cartoforum.com:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:groupobjects', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid},
 		serverType: 'geoserver'
 	     }));if (style == 1) dark.setVisible(1);
@@ -126,7 +126,7 @@ map.on('singleclick', function(e) {
 	}
   var viewResolution = /** @type {number} */ (map.getView().getResolution());
   var url = groupobjectssrc.getGetFeatureInfoUrl( e.coordinate, viewResolution, 'EPSG:3857', {'INFO_FORMAT': 'text/html'});
-  url = "http://127.0.0.1" + url.substring(20);
+  url = "http://127.0.0.1" + url.substring(21);
   url="/_discovery_popup?url="+encodeURIComponent(url);
 
   var xmlhttp = new XMLHttpRequest();
@@ -176,7 +176,7 @@ $('#filter-by-thread').change(function(){
          $("#posts").html("")
        for (var i in response.threads) {
          var newthread = "<div id = 'threadname'><div style = 'margin-right: 30px'>" + response.threads[i]['name'] + '</div>';
-         newthread += '<img class = "addpost" id = "addtothread' + response.threads[i]['threadid'] + '" src = {{ url_for("static",  filename="images/images/add.png" onclick = "postToThread(' + response.threads[i]['threadid'] + ')" data-toggle="tooltip" title="Add to thread"><span class = "clickinst">Click to add a post</span></div>';
+         newthread += '<img class = "addpost" id = "addtothread' + response.threads[i]['threadid'] + '" src = "/static/images/add.png" onclick = "postToThread(' + response.threads[i]['threadid'] + ')" data-toggle="tooltip" title="Add to thread"><span class = "clickinst">Click to add a post</span></div>';
          newthread += '<div class = "postToThread" id = "postToThread' + response.threads[i]['threadid'] + '"></div>';
          $("#posts").append(newthread);
          for (var j=0; j< response.threads[i]['posts'].length; j++) {
@@ -186,7 +186,7 @@ $('#filter-by-thread').change(function(){
        }
        });
      threadsrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-     url: 'http://54.225.25.139:8080/geoserver/wms',
+     url: 'http://cartoforum:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:threadview', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid+';threadid:'+threadid},
 		serverType: 'geoserver'
 	     }));
@@ -199,10 +199,10 @@ $('#filter-by-thread').trigger('change');
 //populate user filter on click
   $.getJSON($SCRIPT_ROOT + '/_get_group_users',
   function (response) {
-    for (key in response.group_users) {
+    for (var i in response.users) {
       $('#filter-by-user').append($('<option/>', {
-        value: key,
-        text: response.group_users[key]
+        value: response.users[i]['userid'],
+        text: response.users[i]['name']
         }));
       }
   })
@@ -219,9 +219,7 @@ $('#filter-by-user').change(function() {
    }, function (response) {
             $("#posts").html("")
             for (var i = 0; i<response.posts.length;i++) {
-                var newpost = "<div class = 'postContent' id = '" + response.posts[i][0] + "' onClick = 'highlightOject(this.id, " + response.posts[i][3] + ")'></div>";
-                newpost += "<div class = 'postTopBar'><p class = 'fromfind'>From: " + response.posts[i][5] + "<span style = 'float: right;'><input type = 'button' class = 'btn findbtn' value = '&#x1f50d;' onclick = 'zoomTo(" + response.posts[i][3] + ")'></span></p></div>";
-                newpost += "<div class = 'postText'>" + response.posts[i][4] + "</div>";
+                var newpost = createPost(response.posts[i]);
                 $("#posts").append(newpost);
             }
         });
@@ -270,30 +268,36 @@ function addInteraction() {
   }
 }
 
-function createPost(post){
-    var newpost = "<div class = 'postContent' id = '" + post[0] + "' onClick = 'highlightObject(this.id, " + post[3] + ")'>";
+function createPost(post,indent){
+    if (post[7]) vtotal = post[7];
+    else vtotal = 0;
+    if (indent) indent = indent + 'px';
+    else indent = '0px';
+    var newpost = "<div class = 'postContent' id = '" + post[0] + "' onClick = 'highlightObject(this.id, " + post[3] + ")' style = 'margin-left: " + indent + "'>";
     if (post[9]) newpost += "<div class = 'clickedPostTopBar'>";
     else  newpost += "<div class = 'postTopBar'>";
-    newpost += "<p class = 'fromfind'>From: " + post[5] + "<span style = 'float: right;'><input type = 'button' class = 'btn findbtn' value = '&#x1f50d;' onclick = 'zoomTo(" + post[3] + ")'></span></p>"
+    newpost += "<p class = 'fromfind'>From: " + post[5] + "<span style = 'float: right;'>";
+    if (post[3]) newpost += "<input type = 'button' class = 'btn findbtn' value = '&#x1f50d;' onclick = 'zoomTo(" + post[3] + ")'>";
+    newpost += "</span></p>"
     newpost += "User " + post[6] + "<span style = 'float: right; font-size: 8px;'>\n Date " + post[2] + "</span></div>";
     newpost += "<div class = 'postText'>" + post[4] + "</div></div>";
-    newpost += "<div class = 'replyToPostContainer'>";
+    newpost += "<div class = 'replyToPostContainer' style = 'margin-left: " + indent + "'>";
     if (post[8] == 0 || !post[8]) {
       newpost += "<a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",-1)'><img class = 'votebtns' src='/static/images/minus.png'></a><span class = 'vtotal'>";
-      newpost += post[7] + "</span><a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",1)'><img class = 'votebtns' src='/static/images/plus.png'></a></a>";
+      newpost += vtotal + "</span><a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",1)'><img class = 'votebtns' src='/static/images/plus.png'></a></a>";
     }
     if (post[8] == 1) {
       newpost += "<a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",-1)'><img class = 'votebtns' src='/static/images/minus.png'></a><span class = 'vtotal'>";
-      newpost += post[7] + "</span><a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",0)'><img class = 'votebtns' src='/static/images/plusc.png'></a></a>";
+      newpost += vtotal + "</span><a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",0)'><img class = 'votebtns' src='/static/images/plusc.png'></a></a>";
     }
     if (post[8] == -1) {
       newpost += "<a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",0)'><img class = 'votebtns' src='/static/images/minusc.png'></a><span class = 'vtotal'>";
-      newpost += post[7] + "</span><a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",1)'><img class = 'votebtns' src='/static/images/plus.png'></a></a>";
+      newpost += vtotal + "</span><a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",1)'><img class = 'votebtns' src='/static/images/plus.png'></a></a>";
     }
     newpost +=  "<input type = 'button' class = 'replyToPost wbtn' value = 'reply' onclick = 'replyToPost(" + post[0] + ")' />";
 
     newpost += "</div>";
-    newpost += "<div class = 'replyArea' id = 'reply-to-post" + post[0] + "'>";
+    newpost += "<div class = 'replyArea' id = 'reply-to-post" + post[0] + "' style = 'margin-left: " + indent + "'>";
     console.log(post[10]);
     if (post[10]==true) newpost += "<input type = 'button' class = 'replyToPost wbtn' value = 'delete' onclick = 'deletePost(" + post[0] + ")' />";
     newpost += "</div>";
@@ -304,6 +308,7 @@ function createPost(post){
 function recentPosts() {
 stopDigitizing();
  $( '#createThread' ).html( '' );
+ $( '#posts').html("");
 $.getJSON($SCRIPT_ROOT + '/_recent_posts',
   function (response) {
             for (var i = 0; i<response.posts.length;i++) {
@@ -447,7 +452,7 @@ function highlightObject(postid, objid) {
     if (selectedObjectSrc) selectedobject.setSource();
     if (objid) {
       selectedObjectSrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-      url: 'http://54.225.25.139:8080/geoserver/wms',
+      url: 'http://cartoforum.com:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:SelectedFeatures', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'objid:'+objid},
 		serverType: 'geoserver'
 	     }));
@@ -468,6 +473,7 @@ function highlightObject(postid, objid) {
      id: id,
      type: data_type
   }, function (response) {
+       var indent = 0;
        $("#posts").html("")
        for (var key in response.data) {
          var newthread = "<div id = 'threadname'><div style = 'margin-right: 30px'>" + response.data[key].name + '</div>';
@@ -475,7 +481,8 @@ function highlightObject(postid, objid) {
          newthread += '<div class = "postToThread" id = "postToThread' + key + '"></div>';
          $("#posts").append(newthread);
          for (var i=0; i< response.data[key].posts.length; i++) {
-          var newpost = createPost(response.data[key].posts[i]);
+          var newpost = createPost(response.data[key].posts[i],indent);
+          indent += 10;
           $("#posts").append(newpost);
          }
        }
@@ -515,10 +522,10 @@ function postToThread(threadid) {
 
 $( ".addpost").on({
  "mouseover" : function() {
-    this.src = 'images/addhover.png';
+    this.src = '/static/images/addhover.png';
   },
   "mouseout" : function() {
-    this.src='images/add.png';
+    this.src='/static/images/add.png';
   }
 });
 $(".postToThread").css("display", "none");
@@ -529,10 +536,10 @@ for (var i = 0; i<addpostbuttons.length; i++)   $( "#addtothread"+addpostbuttons
 
 $( "#addtothread"+threadid).on({
  "mouseover" : function() {
-    this.src = 'images/cancelhover.png';
+    this.src = '/static/images/cancelhover.png';
   },
   "mouseout" : function() {
-    this.src='images/cancel.png';
+    this.src='/static/images/cancel.png';
   }
 });
   $( "#addtothread"+threadid).attr("onclick","stopDigitizing("+threadid+")");
@@ -592,10 +599,10 @@ $( "div#addNewThread" ).html("");
 $( "div#addNewThread" ).hide("fast");
 $( "#addtothread"+threadid).on({
  "mouseover" : function() {
-    this.src = 'images/addhover.png';
+    this.src = '/static/images/addhover.png';
   },
   "mouseout" : function() {
-    this.src='images/add.png';
+    this.src='/static/images/add.png';
   }
 });
   $( "#addtothread"+threadid).attr("onclick","postToThread("+threadid+")");

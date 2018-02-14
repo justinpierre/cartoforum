@@ -291,7 +291,7 @@ font-size: 12px;
 }
 
 .recpost:hover {
-  content:url("../images/rechover.png");
+  content:url("static/images/rechover.png");
 }
 
 .addpost {

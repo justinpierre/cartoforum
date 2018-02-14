@@ -1,13 +1,5 @@
 var map;
 
-function showAcctDiv() {
-$( "#createAccount" ).show( "fast" );
-}
-
-function showPwDiv() {
-$( "#forgotPassword" ).show( "fast" );
-}
-
 function makeNewGroup() {
 $( "#newGroup" ).show( "fast" );
 if (!map) init();
@@ -132,22 +124,43 @@ function getUserGroups() {
             $("#description").append(" for some inspiration");
         }
         else {
+            $("#description").append("<table>");
             for (var i=0; i < data.groups.length; i++) {
-                var groupForm = $("<form method = 'POST' action = '/map'></form");
+                var newrow = $("<tr></tr>");
+                var newcell = $("<td></td>");
+                var groupForm = $("<form method = 'POST' action = '/map'></form>");
                 groupForm.append('<input type = "hidden" name = "groupid" value = "' + data.groups[i]['groupid'] + '">');
                 groupForm.append('<input type = "submit" class = "bbtn btn" value = "' + data.groups[i]['name'] + '">');
-                $("#description").append(groupForm);
+                newcell.append(groupForm);
+                newrow.append(newcell);
                 if (data.groups[i]['admin'] == "true") {
-                    var adminForm = $("<form method = 'POST' action = '/admin'></form>");
+                    var newcell = $("<td></td>");
+                    var adminForm = $("<td><form method = 'POST' action = '/admin'></form></td>");
                     adminForm.append('<input type = "hidden" name = "groupid" value = "'+ data.groups[i]['groupid'] + '">');
                     adminForm.append('<input type = "submit" class = "bbtn btn" value = "admin">');
-                    $("#description").append(adminForm);
+                    newcell.append(adminForm);
+                    newrow.append(newcell);
                 }
+                else {
+                    newrow.append('<td></td>')
+                }
+                $("#description").append(newrow);
             }
+            $("#description").append("</table>");
         }
     })
     getUserInvites();
  }
+
+ function getGroupUsers() {
+     $.getJSON($SCRIPT_ROOT + '/_get_group_users',
+     function(data){
+     for (var i =0; i<data.users.length; i++) {
+         $("#users").append("<tr><td>" + data.users[i]['name'] + "</td></tr>");
+        }}
+      )
+ }
+
 
 function getUserInvites() {
     $.getJSON($SCRIPT_ROOT + '/_get_user_invites',
@@ -195,4 +208,6 @@ function getThreads() {
     function(data) {
       $("#threads").append()
     }
-)}
+)
+ getGroupUsers();
+}

@@ -42,42 +42,29 @@ var groupid = {{ groupid }};
 <br><br>
 <table id = "threads" class = "admintable">
 <tr><th width = "350">Threads</tr></tr>
+</table>";
 
-  echo "</table>";
-?>
 </span>
 <table id = "users" class = "admintable">
   <tr><th>Users</th></tr>
   <tr><td>
-<?php
-	echo "<form method = 'POST' action = 'invite.php' class = 'invite'>";
-	echo "<input type = 'hidden' name = 'groupid' value = '" . $groupname . "'>";
-	echo "<input class = 'inviteuserid' name = 'invitee' placeholder = 'invite by username'>";
-	echo "<input type = 'submit' class = 'btn wbtn' value = 'send invite'></form>";
-?>
+
+	<form method = 'POST' action = '/inviteUser' class = 'invite'>
+        <input class = 'inviteuserid' name = 'invitee' placeholder = 'invite by username'>"
+	    <input type = 'submit' class = 'btn wbtn' value = 'send invite'>
+    </form>
   <td><tr>
-  <?php
-   $query = "Select users.userid, users.username from users INNER JOIN usersgroups ON usersgroups.userid = users.userid WHERE usersgroups.groupid=" . $groupid . ";";
-   $result = pg_query($dbconn, $query);
-   while ($row = pg_fetch_row($result)) {
-     echo "<tr><td>";
-     echo $row[1];
-     echo "</td><td><input type = 'button' class = 'btn wbtn' value = 'remove' onclick = 'removeUser(" . $row[0] . ", `" . $row[1] . "` , " . $groupid . ")'></td></tr>";
-   }
-   echo "</table>";
-?>
+
 <table id = "tools" class = "admintable">
 <tr><th>Admin Tools</th></tr>
 <tr><td>
-<?php echo "<input type = 'button' class = 'btn wbtn' value = '+geojson' onClick = addGeojson('" . $groupid . "') />\n";?>
+<input type = 'button' class = 'btn wbtn' value = '+geojson' onClick = 'addGeojson()' />
 </td></tr><tr><td>
 <br>
 Invite users by email:<br>
 <form method = 'POST' action = 'serverops/inviteUsers.php'>
 <textarea name = "emails" placeholder = "paste addresses here separated by commas"></textarea>
-<?php
-echo "<input type = 'hidden' name = 'g' value = '" . $groupid . "'>";
-?>
+
 <br>
 <input type = "submit" value = "send invites" class = 'btn wbtn'>
 </form>
@@ -96,9 +83,6 @@ echo "<input type = 'hidden' name = 'g' value = '" . $groupid . "'>";
 <br>
 <form method = 'POST' action = 'serverops/deletegroup.php' id = 'deletegroupform'>
 <input type = "button"  class = 'btn bbtn' value = "Delete Group" onClick = "deleteGroup()">
-<?php
-echo "<input type = 'hidden' name = 'deletegroupid' value = '" . $groupid . "'>";
-?>
 </form>
 </div>
 </div>
