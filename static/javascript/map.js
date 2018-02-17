@@ -268,11 +268,11 @@ function addInteraction() {
   }
 }
 
-function createPost(post,indent){
+function createPost(post){
     if (post[7]) vtotal = post[7];
     else vtotal = 0;
-    if (indent) indent = indent + 'px';
-    else indent = '0px';
+    if (post[11]) var indent = post[11] + 'px';
+    else var indent = '0px';
     var newpost = "<div class = 'postContent' id = '" + post[0] + "' onClick = 'highlightObject(this.id, " + post[3] + ")' style = 'margin-left: " + indent + "'>";
     if (post[9]) newpost += "<div class = 'clickedPostTopBar'>";
     else  newpost += "<div class = 'postTopBar'>";
@@ -295,11 +295,9 @@ function createPost(post,indent){
       newpost += vtotal + "</span><a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",1)'><img class = 'votebtns' src='/static/images/plus.png'></a></a>";
     }
     newpost +=  "<input type = 'button' class = 'replyToPost wbtn' value = 'reply' onclick = 'replyToPost(" + post[0] + ")' />";
-
+    if (post[10]) newpost += "<input type = 'button' class = 'replyToPost wbtn' value = 'delete' onclick = 'deletePost(" + post[0] + ")' />";
     newpost += "</div>";
-    newpost += "<div class = 'replyArea' id = 'reply-to-post" + post[0] + "' style = 'margin-left: " + indent + "'>";
-    console.log(post[10]);
-    if (post[10]==true) newpost += "<input type = 'button' class = 'replyToPost wbtn' value = 'delete' onclick = 'deletePost(" + post[0] + ")' />";
+
     newpost += "</div>";
 
     return newpost
@@ -405,7 +403,7 @@ function savePost(objid) {
       replyID = null;
       selectExisting=false;
       $( "div#reply-to-post"+replyID ).html("");
-      $( "#sidebar" ).html("");
+      $( "#posts" ).html("");
       $( "#createThread" ).hide("fast");
       $( "#createThread" ).html("");
       //refresh map
@@ -473,16 +471,15 @@ function highlightObject(postid, objid) {
      id: id,
      type: data_type
   }, function (response) {
-       var indent = 0;
        $("#posts").html("")
        for (var key in response.data) {
+         console.log(key);
          var newthread = "<div id = 'threadname'><div style = 'margin-right: 30px'>" + response.data[key].name + '</div>';
          newthread += '<img class = "addpost" id = "addtothread' + key + '" src = /static/images/add.png onclick = "postToThread(' + key + ')" data-toggle="tooltip" title="Add to thread"><span class = "clickinst">Click to add a post</span></div>';
          newthread += '<div class = "postToThread" id = "postToThread' + key + '"></div>';
          $("#posts").append(newthread);
          for (var i=0; i< response.data[key].posts.length; i++) {
-          var newpost = createPost(response.data[key].posts[i],indent);
-          indent += 10;
+          var newpost = createPost(response.data[key].posts[i]);
           $("#posts").append(newpost);
          }
        }
@@ -499,12 +496,12 @@ function highlightObject(postid, objid) {
 
 
 function newThread() {
-  $( "#sidebar" ).html("");
+  $( "#posts" ).html("");
   var html = '<div id = "createThread" class = "replyArea"><input type = "text" id = "new-threadnick" placeholder = "Nickname for Thread" /><br>';
   html += '<textarea id = "new-threadname" placeholder = "Thread description"></textarea><br><br>';
   html += '<input type = "button" value = "save" class = "btn bbtn" onclick = "saveThread()">';
   html += '<input type = "button" value = "cancel" class = "btn bbtn" onclick = "$( `#createThread` ).html(``)"></div>';
-  $( "#sidebar" ).html(html);
+  $( "#posts" ).html(html);
   $( "#createThread" ).show("fast");
 }
 
@@ -635,14 +632,11 @@ function zoomTo(objid) {
 }
 
 function deletePost(postid) {
-  var ajaxRequest = new XMLHttpRequest();
-  ajaxRequest.onreadystatechange=function() {
-  if (ajaxRequest.readyState==4 && ajaxRequest.status==200) {
-    recentPosts();
-  }}
-
-  ajaxRequest.open("POST", "serverops/deletePost.php", true);
-  ajaxRequest.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-  ajaxRequest.send("postid="+postid);
+  $.getJSON($SCRIPT_ROOT + '/_delete_post', {
+  postid:postid
+  },
+  function (response) {
+    recentPosts()
+  })
   }
 

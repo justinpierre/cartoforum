@@ -465,10 +465,33 @@ def user_posts():
 
 @app.route('/_get_post', methods=['GET'])
 def get_post():
-    id = request.args.get('id', 0, type=int)
-    data_type = request.args.get('type', 0, type=str)
     thread_data = {}
     clicked_post = []
+    indent = 0
+    def get_replies(postid,clickedid,indent):
+        indent += 10
+        vtotal = voted = None
+        for p3, t3, u3 in sess.query(Post, Thread, Users).filter_by(responseto=postid).join(Thread).join(
+                Users):
+            responseto = sess.query(Post).filter_by(responseto=p3.postid).count()
+            deleteable = False
+            qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p3.postid)
+            for res in qry.all():
+                vtotal = res
+            for v in sess.query(Votes).filter_by(postid=p3.postid).filter_by(userid=session['userid']):
+                voted = v.vote
+            if p3.userid == session['userid'] and responseto==0:
+                deleteable = True
+            if p3.postid:
+                thread_data[i]['posts'].append(
+                    [p3.postid, p3.userid, p3.date, p3.objectid, p3.postcontent, t3.nickname, u3.username,
+                     vtotal[0], voted, p3.postid in clicked_post, deleteable, indent])
+            if responseto>0:
+                get_replies(p3.postid,clickedid,indent)
+
+    id = request.args.get('id', 0, type=int)
+    data_type = request.args.get('type', 0, type=str)
+
     clicked_thread = {}
     retired_threads = []
     # get a list of retired threads
@@ -477,7 +500,10 @@ def get_post():
     # create a list of threads related to the clicked object
     if data_type == "objid":
         for t in sess.query(Post).filter_by(objectid=id):
-            clicked_thread[t.threadid] = []
+            if t.threadid in clicked_thread:
+                continue
+            else:
+                clicked_thread[t.threadid] = []
         for t, v in clicked_thread.iteritems():
             for p in sess.query(Post).filter_by(objectid=id).filter_by(threadid=t):
                 clicked_thread[t].append(p.postid)
@@ -488,48 +514,42 @@ def get_post():
         clicked_thread[t] = [id]
     # figure out every thread, recursive conversation list, clicked or not, votes
     for i, clickedid in clicked_thread.iteritems():
+        indent = 0
         thread_name = sess.query(Thread).filter_by(threadid=i).one().nickname
         thread_data[i] = {"name": thread_name}
         thread_data[i]['posts'] = []
         if i in retired_threads:
             thread_data[i]['retired'] = True
         # set next_post equal to the clicked id and assume it is a response to something
-        next_post = clickedid[0]
-        responseto = True
-        while responseto:
-            for p in sess.query(Post).filter_by(postid=next_post):
-                if p.responseto > 0:
-                    next_post = p.responseto
-                else:
-                    responseto = False
-        vtotal = voted = None
-        # now next_post is the original post id
-        for p, t, u in sess.query(Post, Thread,Users).filter_by(postid=next_post).join(Thread).join(Users):
-            qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
-            for res in qry.all():
-                vtotal = res
-            for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=session['userid']):
-                voted = v.vote
-            thread_data[i]['posts'].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0], voted,p.postid in clicked_post])
+        for j in clickedid:
+            next_post = j
             responseto = True
             while responseto:
-                for p2 in sess.query(Post).filter_by(responseto=next_post):
-                    next_post = p2.postid
-                    checkresponse = sess.query(Post).filter_by(responseto=next_post).count()
-                    if checkresponse == 0:
+                for p in sess.query(Post).filter_by(postid=next_post):
+                    if p.responseto > 0:
+                        next_post = p.responseto
+                    else:
                         responseto = False
-                    for p3, t3, u3 in sess.query(Post, Thread, Users).filter_by(postid=next_post).join(Thread).join(Users):
-                        deleteable = False
-                        qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p3.postid)
-                        for res in qry.all():
-                            vtotal = res
-                        for v in sess.query(Votes).filter_by(postid=p3.postid).filter_by(userid=session['userid']):
-                            voted = v.vote
-                        if p3.userid == session['userid'] and not responseto:
-                            deleteable = True
-                        thread_data[i]['posts'].append(
-                            [p3.postid, p3.userid, p3.date, p3.objectid, p3.postcontent, t3.nickname, u3.username, vtotal[0],
-                             voted, p3.postid in clicked_post, deleteable])
+            vtotal = voted = None
+            # now next_post is the original post id
+            indent = 0
+            for p, t, u in sess.query(Post, Thread,Users).filter_by(postid=next_post).join(Thread).join(Users):
+                qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
+                for res in qry.all():
+                    vtotal = res
+                for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=session['userid']):
+                    voted = v.vote
+                checkdeletable = sess.query(Post).filter_by(responseto=p.postid).count()
+                deleteable = False
+                responseto = True
+                if checkdeletable == 0:
+                    deleteable = True
+                    responseto = False
+                if p.postid:
+                    thread_data[i]['posts'].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0], voted,p.postid in clicked_post,deleteable,indent])
+                # for all responses get all responses until checkresponse == 0
+                get_replies(next_post,clicked_post,indent)
+
 
     return jsonify(data=thread_data)
 
@@ -581,6 +601,30 @@ def zoom_to():
     for row in response:
         bbox = "{}, {}, {}, {}".format(row[0],row[1], row[2], row[3])
     return jsonify(bounds=bbox)
+
+
+@app.route('/_delete_post',methods=['GET'])
+def delete_post():
+    postid = request.args.get('postid', 0, type=int)
+    is_this_my_post = sess.query(Post).filter_by(userid=session['userid']).filter_by(postid=postid).one()
+    if is_this_my_post.userid != session['userid']:
+        return jsonify('request not allowed')
+    objectid = is_this_my_post.objectid
+    canIdelete = sess.query(Post).filter_by(responseto = postid).count()
+    if canIdelete > 0:
+        return jsonify('request not allowed')
+    sess.query(Post).filter_by(userid=session['userid']).filter_by(postid=postid).delete()
+    sess.commit()
+    # check if you can delete the geometry
+    usingobject = cur.execute("SELECT count(*) from posts where objectid = {}".format(objectid))
+    response = cur.fetchall()
+    for row in response:
+        if row[0] == 0:
+            cur.execute("DELETE from mapobjects where objectid = {}".format(objectid))
+            pgconnect.commit()
+    return jsonify('success')
+
+
 
 @app.route('/_save_object', methods=['GET'])
 def save_object():

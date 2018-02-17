@@ -13,13 +13,14 @@
 		<script src="{{ url_for('static', filename='javascript/index.js') }}"></script>
 	</head>
 	<body onload="getUserGroups()">
-		<header id = "loginbar">
+
+		<div id = "content">
+			<div id = "loginbar">
 			<h1 id = "title">cartoforum</h1>
 			<form method = "POST" action = "discovery">
 			<input type = "submit" class = "btn bbtn" value = "Discovery Map">
 			</form>
-		</header>
-		<div id = "content">
+		</div>
 			<div id = "description">
 				<br>
 				<input type = "button" class = "btn wbtn" value = "Create a Group" onClick = "makeNewGroup()" /><br>
