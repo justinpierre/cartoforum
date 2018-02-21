@@ -46,6 +46,16 @@ class Users(base):
     twitterid = Column(Integer)
 
 
+class PasswordReset(base):
+    __tablename__ = 'passwordreset'
+    requestid = Column(Integer, primary_key=True)
+    userid = Column(Integer, ForeignKey("users.userid"))
+    date = Column(Date)
+    token = Column(String)
+    used = Column(Boolean)
+    passwordreset_users = relationship("Users", foreign_keys=[userid])
+
+
 class TwitterUsers(base):
     __tablename__ = 'twitterusers'
     id = Column(Integer,primary_key=True)
@@ -200,6 +210,27 @@ def select_username():
     sess.commit()
     return index()
 
+
+@app.route('/_recover_password', methods = ['POST'])
+def recover_password():
+    email = request.form['email']
+    exists = sess.query(Users).filter_by(email=email).count()
+    if exists == 0:
+        return jsonify("Can't find that email address")
+    elif exists > 1:
+        return jsonify("Something terrible has happened")
+    else:
+        userid = sess.query(Users).filter_by(email=email).one().userid
+        now = datetime.datetime.utcnow()
+        m = hashlib.sha256()
+        for i in [str(userid),str(now),email]:
+            m.update(i.encode("utf-8"))
+        token = m.hexdigest()
+        newrequest = PasswordReset(userid=userid, token=token, date=now, used='f')
+        sess.add(newrequest)
+        sess.commit()
+        resetlink = "https://cartoforum.com/resetpassword?token={}".format(token)
+        return jsonify(resetlink)
 
 @app.route('/logout', methods=['POST'])
 def do_logout():
@@ -439,7 +470,7 @@ def go_to_group():
 def recent_posts():
     posts = []
     voted = vtotal = None
-    for p, t, u in sess.query(Post, Thread, Users).order_by(Post.date).join(Thread).filter_by(groupid=session['groupid']).join(Users):
+    for p, t, u in sess.query(Post, Thread, Users).order_by(Post.date.desc()).join(Thread).filter_by(groupid=session['groupid']).join(Users):
         qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
         for res in qry.all():
             vtotal = res
@@ -635,6 +666,7 @@ def save_object():
     for row in response:
         if row[0]>0:
             return None
+
     cur.execute("INSERT INTO mapobjects (geom, groupid, userid, date) VALUES (ST_GeomFromText('{}',3857), {}, {}, '{}');".format(geom,session['groupid'],session['userid'],datetime.datetime.utcnow()))
     pgconnect.commit()
     query = cur.execute("SELECT objectid FROM mapobjects WHERE userid = {0} AND date = (SELECT max(date) FROM mapobjects WHERE userid = {0});".format(session["userid"]))
@@ -648,6 +680,8 @@ def save_post():
     threadid = request.form['threadid']
     replyID = request.form['replyID']
     objid = request.form['objid']
+    if not objid:
+        objid = 0
     text = request.form['text']
     ug = sess.query(UsersGroups).filter_by(userid=session['userid']).filter_by(groupid=session['groupid']).one().userid
     if not ug:

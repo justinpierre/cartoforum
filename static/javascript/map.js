@@ -137,9 +137,15 @@ map.on('singleclick', function(e) {
 	      content.innerHTML = xmlDoc;
               $( "#objinfo" ).show( "fast" );
 	      var x = content.getElementsByTagName("td");
-	      if (selectExisting) selectExisting = x[1].innerHTML;
-	      else $( "#objid" ).html(x[1].innerHTML);
+	      if (selectExisting){
+	       selectExisting = x[1].innerHTML;
+	       }
+	      else {
+	      $( "#objid" ).html(x[1].innerHTML);
+
+}
               highlightObject(null, x[1].innerHTML);
+
 	     }
 	   }
         }
@@ -241,6 +247,7 @@ function styleChange(color) {
 function addInteraction() {
   digitizing = true;
   var value = typeSelect.options[typeSelect.selectedIndex].value;
+  console.log(value);
   draw = new ol.interaction.Draw({
       source: vsource,
       type: /** @type {ol.geom.GeometryType} */ (value)
@@ -296,9 +303,10 @@ function createPost(post){
     }
     newpost +=  "<input type = 'button' class = 'replyToPost wbtn' value = 'reply' onclick = 'replyToPost(" + post[0] + ")' />";
     if (post[10]) newpost += "<input type = 'button' class = 'replyToPost wbtn' value = 'delete' onclick = 'deletePost(" + post[0] + ")' />";
+    newpost += "<div class = 'replyArea' id = 'reply-to-post" + post[0] + "' style = 'margin-left: " + indent + "'></div>";
     newpost += "</div>";
 
-    newpost += "</div>";
+
 
     return newpost
 }
@@ -457,7 +465,7 @@ function highlightObject(postid, objid) {
       selectedobject = new ol.layer.Tile({source: selectedObjectSrc, visible: true});
       map.addLayer(selectedobject);
     }
-
+  if (selectExisting) return;
   if (!postid) {
    var data_type = 'objid';
    var id = objid;
