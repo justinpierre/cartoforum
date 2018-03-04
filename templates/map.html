@@ -14,12 +14,17 @@
 <script type="text/javascript" src="{{ url_for('static', filename='javascript/jquery.mousewheel.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('static', filename='javascript/jquery.jscrollpane.min.js') }}"></script>
 <script src = "https://cdnjs.cloudflare.com/ajax/libs/ol3/4.4.2/ol.js" type = "text/javascript"></script>
-<script src = "{{ url_for('static', filename='javascript/map.js') }}" type = "text/javascript"></script>
+    {% if userid > 0 %}
+    <script src = "{{ url_for('static', filename='javascript/map.js') }}" type = "text/javascript"></script>
+    {% else %}
+    <script src = "{{ url_for('static', filename='javascript/ro_map.js') }}" type = "text/javascript"></script>
+    {% endif %}
+
 <script type = "text/javascript">
 var userid = {{ userid }};
 var groupid = {{ groupid }};
 var bounds = "{{ bounds }}";
-$.ajaxSetup({ cache: false }); 
+$.ajaxSetup({ cache: false });
 </script>
 </head>
 <body onload = "init()">
@@ -32,7 +37,9 @@ $.ajaxSetup({ cache: false });
  </select>
  <select id = "filter-by-thread" name = "filter-by-thread">
  <option value = "none">View a Thread</option>
-     <option value = 'new'>New Thread</option>
+     {% if userid > 0 %}
+       <option value = 'new'>New Thread</option>
+     {% endif %}
  </select>
 <input type = "button" class = "btn bbtn" value = "filter to extent" onclick = "postExtent()">
 </span>
@@ -70,14 +77,18 @@ $.ajaxSetup({ cache: false });
  <p id = "posts" class = "sidebar"></p>
 </div>
 <footer>
+    {% if userid > 0 %}
 <span style = "padding-left: 80px;">{{ username }}
 <form class = "inlineform" action = "/logout" method = "POST">
 <input type = "submit" class = "btn bbtn" value = "logout" />
 </form>
+    {% endif %}
 <span style = "padding-left: 10px">{{ groupname }}</span>
-<form class = "inlineform" action = "/groupselect" method = "POST">
+{% if userid > 0 %}
+     <form class = "inlineform" action = "/groupselect" method = "POST">
 <input type = "submit" class = "btn bbtn" value = "group select" />
 </form>
+    {% endif %}
 </span>
 <span style = "float: right;">Created by <a href = "https://twitter.com/jpierre001">Justin Pierre</a></span>
 </footer>

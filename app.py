@@ -17,7 +17,7 @@ from flask_oauth import OAuth
 
 import sqlalchemy
 from sqlalchemy import create_engine
-from sqlalchemy import Column, String, Integer, Date, Boolean, ForeignKey
+from sqlalchemy import Column, String, Integer, Date, Boolean, ForeignKey, asc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import relationship
@@ -230,7 +230,7 @@ def recover_password():
         sess.add(newrequest)
         sess.commit()
         resetlink = "https://cartoforum.com/resetpassword?token={}".format(token)
-        return jsonify(resetlink)
+
 
 @app.route('/logout', methods=['POST'])
 def do_logout():
@@ -312,10 +312,10 @@ def get_group_users():
 @app.route('/invite_user', methods=['GET'])
 def invite_user():
     invitee = request.args.get('invitee', type=str)
-    # try:
-    inviteeuserid = sess.query(Users).filter_by(username=invitee).one().userid
-    # except:
-        # return jsonify(response="user doesn't exist")
+    try:
+      inviteeuserid = sess.query(Users).filter_by(username=invitee).one().userid
+    except:
+        return jsonify(response="user doesn't exist")
     inviteexists = sess.query(GroupRequests).filter_by(invitee=inviteeuserid).filter_by(groupid=session['groupid']).count()
     if inviteexists > 0:
         return jsonify(response='invite already exists')
@@ -331,7 +331,7 @@ def invite_user():
 @app.route('/_get_user_invites', methods=['GET'])
 def get_user_invites():
     invreq = {'invites': [], 'requests': []}
-    for gr,g,u in sess.query(GroupRequests,Group,Users).filter_by(invitee=session['userid']).join(Group).join(Users):
+    for gr,g,u in sess.query(GroupRequests,Group,Users).filter_by(invitee=session['userid']).filter_by(complete='f').join(Group).join(Users):
         invreq['requests'].append({"requestid": gr.requestid,"requester":u.username,"group":g.groupname,"date":gr.dateissued})
 
     cur.execute("SELECT inviteme.requestid, users.username, groups.groupname, inviteme.date "
@@ -350,14 +350,14 @@ def manage_request():
     requestid = request.form['requestid']
     action = request.form['submit']
 
-    cur.execute("SELECT groupid,userid FROM inviteme WHERE requestid = {};".format(requestid))
+    cur.execute("SELECT groupid,invitee FROM grouprequests WHERE requestid = {};".format(requestid))
     response = cur.fetchall()
 
     for row in response:
         if action == 'accept':
             # make sure it doesn't add twice
             cur.execute("INSERT INTO usersgroups VALUES ({},{})".format(row[1],row[0]))
-        cur.execute("UPDATE inviteme set accepted = 't' WHERE requestid = {}".format(requestid))
+        cur.execute("UPDATE grouprequests set complete = 't' WHERE requestid = {}".format(requestid))
         pgconnect.commit()
     return render_template('groupselect.html')
 
@@ -367,24 +367,24 @@ def accept_invite():
     requestid = request.form['requestid']
     action = request.form['submit']
 
-    cur.execute("SELECT groupid FROM grouprequests WHERE requestid = {};".format(requestid))
+    cur.execute("SELECT groupid FROM inviteme WHERE requestid = {};".format(requestid))
     response = cur.fetchall()
     for row in response:
         if action == 'accept':
             # make sure it doesn't add twice
             cur.execute("INSERT INTO usersgroups VALUES ({},{})".format(session['userid'],row[0]))
-        cur.execute("UPDATE grouprequests set complete = true WHERE requestid = {}".format(requestid))
+        cur.execute("UPDATE inviteme set complete = true WHERE requestid = {}".format(requestid))
         pgconnect.commit()
     return render_template('groupselect.html')
 
 
 @app.route('/createGroup', methods=['POST'])
 def create_group():
-    groupname = request.json['groupname']
-    bounds = request.json['bounds']
-    bounds_arr = request.json['bounds'].split(" ")
+    groupname = request.form['groupname']
+    bounds = request.form['bounds']
+    bounds_arr = request.form['bounds'].split(" ")
     opengroup = 'false'
-    if request.json['opengroup'] == 'on':
+    if request.form['opengroup'] == 'on':
         opengroup = 'true'
     cur.execute("INSERT INTO groups (geom, groupname, userid, bounds,opengroup) "
                 "VALUES (ST_Centroid(ST_GeomFromText('MULTIPOINT ({} {},{} {})')), '{}', {}, '{}', {})".
@@ -397,9 +397,21 @@ def create_group():
     pgconnect.commit()
     return groupid
 
+
 @app.route('/discovery', methods=['POST'])
 def go_to_disc():
     return render_template('discovery.html')
+
+
+@app.route('/viewmap', methods=['GET'])
+def readonly_view():
+    session['groupid'] = groupid = request.args.get('group', 0, type=str)
+    cur.execute("SELECT groupname,bounds from groups where groupid = {}".format(groupid))
+    response = cur.fetchall()
+    for row in response:
+        groupname = row[0]
+        bounds = row[1]
+    return render_template('map.html', groupid=groupid, groupname=groupname, bounds=bounds, userid=0)
 
 
 @app.route('/_discovery_popup')
@@ -468,13 +480,14 @@ def go_to_group():
 
 @app.route('/_recent_posts', methods=['GET'])
 def recent_posts():
+    userid = session['userid'] if 'userid' in session else 0
     posts = []
     voted = vtotal = None
     for p, t, u in sess.query(Post, Thread, Users).order_by(Post.date.desc()).join(Thread).filter_by(groupid=session['groupid']).join(Users):
         qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
         for res in qry.all():
             vtotal = res
-        for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=session['userid']):
+        for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=userid):
             voted = v.vote
         posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0] or 0, voted or 0])
     return jsonify(posts=posts)
@@ -499,19 +512,20 @@ def get_post():
     thread_data = {}
     clicked_post = []
     indent = 0
+    userid = session['userid'] if 'userid' in session else 0
     def get_replies(postid,clickedid,indent):
         indent += 10
         vtotal = voted = None
-        for p3, t3, u3 in sess.query(Post, Thread, Users).filter_by(responseto=postid).join(Thread).join(
+        for p3, t3, u3 in sess.query(Post, Thread, Users).filter_by(responseto=postid).order_by(asc(Post.date)).join(Thread).join(
                 Users):
             responseto = sess.query(Post).filter_by(responseto=p3.postid).count()
             deleteable = False
             qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p3.postid)
             for res in qry.all():
                 vtotal = res
-            for v in sess.query(Votes).filter_by(postid=p3.postid).filter_by(userid=session['userid']):
+            for v in sess.query(Votes).filter_by(postid=p3.postid).filter_by(userid=userid):
                 voted = v.vote
-            if p3.userid == session['userid'] and responseto==0:
+            if p3.userid == userid and responseto==0:
                 deleteable = True
             if p3.postid:
                 thread_data[i]['posts'].append(
@@ -552,34 +566,35 @@ def get_post():
         if i in retired_threads:
             thread_data[i]['retired'] = True
         # set next_post equal to the clicked id and assume it is a response to something
-        for j in clickedid:
-            next_post = j
-            responseto = True
-            while responseto:
-                for p in sess.query(Post).filter_by(postid=next_post):
-                    if p.responseto > 0:
-                        next_post = p.responseto
-                    else:
-                        responseto = False
-            vtotal = voted = None
-            # now next_post is the original post id
-            indent = 0
-            for p, t, u in sess.query(Post, Thread,Users).filter_by(postid=next_post).join(Thread).join(Users):
-                qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
-                for res in qry.all():
-                    vtotal = res
-                for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=session['userid']):
-                    voted = v.vote
-                checkdeletable = sess.query(Post).filter_by(responseto=p.postid).count()
-                deleteable = False
-                responseto = True
-                if checkdeletable == 0:
-                    deleteable = True
+        j= clickedid[0]
+        # for j in clickedid:
+        next_post = j
+        responseto = True
+        while responseto:
+            for p in sess.query(Post).filter_by(postid=next_post):
+                if p.responseto > 0:
+                    next_post = p.responseto
+                else:
                     responseto = False
-                if p.postid:
-                    thread_data[i]['posts'].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0], voted,p.postid in clicked_post,deleteable,indent])
-                # for all responses get all responses until checkresponse == 0
-                get_replies(next_post,clicked_post,indent)
+        vtotal = voted = None
+        # now next_post is the original post id
+        indent = 0
+        for p, t, u in sess.query(Post, Thread,Users).filter_by(postid=next_post).order_by(asc(Post.date)).join(Thread).join(Users):
+            qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
+            for res in qry.all():
+                vtotal = res
+            for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=userid):
+                voted = v.vote
+            checkdeletable = sess.query(Post).filter_by(responseto=p.postid).count()
+            deleteable = False
+            responseto = True
+            if checkdeletable == 0:
+                deleteable = True
+                responseto = False
+            if p.postid:
+                thread_data[i]['posts'].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0], voted,p.postid in clicked_post,deleteable,indent])
+            # for all responses get all responses until checkresponse == 0
+            get_replies(next_post,clicked_post,indent)
 
 
     return jsonify(data=thread_data)
@@ -587,6 +602,7 @@ def get_post():
 
 @app.route('/_search_posts', methods = ['GET'])
 def search_posts():
+    userid = session['userid'] if 'userid' in session else 0
     posts = []
     qstr = request.args.get('q', 0, type=str)
     voted = vtotal = None
@@ -594,7 +610,7 @@ def search_posts():
         qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
         for res in qry.all():
             vtotal = res
-        for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=session['userid']):
+        for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=userid):
             voted = v.vote
         posts.append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0], voted])
     return jsonify(posts=posts)

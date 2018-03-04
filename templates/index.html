@@ -52,7 +52,7 @@
                 </form>
                 {% endif %}
                 {% endblock %}
-                <a href = "#" onclick = "$('#recoverpassword').show('fast')">Recover Password</a>
+                <input type = "button" href = "#" onclick = "$('#recoverpassword').show('fast')" value = "Recover Password">
                 <div id = "recoverpassword">
                     <form method = "POST" action = "/_recover_password">
                         <input type = "text" placeholder = "enter your email address" name = "email">

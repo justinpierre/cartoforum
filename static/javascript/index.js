@@ -167,7 +167,7 @@ function getUserInvites() {
     function(data) {
         for (var i=0; i < data.invites['invites'].length; i++) {
             var inviteForm = $("<form method = 'POST' action = '/manageInvite'></form>")
-            inviteForm.append(data.invites['invites'][i]['requester'] + " has invited you to the group " + data.invites['invites'][i]['group']);
+            inviteForm.append(data.invites['invites'][i]['requester'] + " has requested a membership to the group " + data.invites['invites'][i]['group']);
             inviteForm.append('<input type = "hidden" name = "requestid" value = "' + data.invites['invites'][i]['requestid'] + '" />');
             inviteForm.append('<input type = "submit" name = "submit" value = "accept" class= "btn bbtn"/>');
             inviteForm.append('<input type = "submit" name = "submit" value = "reject" class= "btn wbtn"/>');
@@ -175,7 +175,7 @@ function getUserInvites() {
         }
         for (var i=0; i < data.invites['requests'].length; i++) {
             var inviteForm = $("<form method = 'POST' action = '/manageRequest'></form>")
-            inviteForm.append(data.invites['requests'][i]['requester'] + "has requested a membership to the group " + data.invites['requests'][i]['group']);
+            inviteForm.append(data.invites['requests'][i]['requester'] + " has invited you to the group " + data.invites['requests'][i]['group']);
             inviteForm.append('<input type = "hidden" name = "requestid" value = "' + data.invites['requests'][i]['requestid'] + '" />');
             inviteForm.append('<input type = "submit" name = "submit" value = "accept" class= "btn bbtn"/>');
             inviteForm.append('<input type = "submit" name = "submit" value = "reject" class= "btn wbtn"/>');
@@ -210,4 +210,12 @@ function getThreads() {
     }
 )
  getGroupUsers();
+}
+
+function sendInvite() {
+ $.getJSON($SCRIPT_ROOT + '/invite_user',
+ {invitee: $("#invitee").val()},
+ function(response) {
+   console.log(response)
+   })
 }

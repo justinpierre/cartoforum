@@ -1,20 +1,6 @@
 var map, typeSelect, draw, vector, groupobjectssrc, groupobjects, overlay, container, content, closer, selectedObjectSrc, selectedobject, selectExisting, digitizing, modify, select, threadsrc,light,dark;
 var replyID = null;
 
-var postHTML = '<textarea id = "new-objinfo" placeholder = "Write your post here and select an option below"></textarea>';
-postHTML += '<br>';
-postHTML += '<label>Create a:</label>';
-postHTML += '<select id="type">';
-postHTML += '<option value="null" selected="selected"></option>';
-postHTML += '<option value="Point">Point</option>';
-postHTML += '<option value="LineString">Line</option>';
-postHTML += '<option value="Polygon">Polygon</option>';
-postHTML += '<option value="None" >None</option>';
-postHTML += '<option value="Select From Map">Select From Map</option>';
-postHTML += '<option value="Edit">Edit</option>';
-postHTML += '</select>';
-postHTML += '<input type = "button" value = "save" class = "bbtn" onclick = "saveObject()">';
-
 
 var style = new ol.style.Style({
     fill: new ol.style.Fill({
@@ -229,6 +215,12 @@ $('#filter-by-user').change(function() {
                 $("#posts").append(newpost);
             }
         });
+   threadsrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
+     url: 'http://cartoforum.com:8080/geoserver/wms',
+                params: {'LAYERS': 'Argoomap_postgis:userobjects', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid+';userid:'+userid},
+		serverType: 'geoserver'
+	     }));
+	      groupobjects.setSource(threadsrc);
   }
 });
 $('#filter-by-user').trigger('change');
@@ -289,32 +281,14 @@ function createPost(post){
     newpost += "User " + post[6] + "<span style = 'float: right; font-size: 8px;'>\n Date " + post[2] + "</span></div>";
     newpost += "<div class = 'postText'>" + post[4] + "</div></div>";
     newpost += "<div class = 'replyToPostContainer' style = 'margin-left: " + indent + "'>";
-    if (post[8] == 0 || !post[8]) {
-      newpost += "<a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",-1)'><img class = 'votebtns' src='/static/images/minus.png'></a><span class = 'vtotal'>";
-      newpost += vtotal + "</span><a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",1)'><img class = 'votebtns' src='/static/images/plus.png'></a></a>";
-    }
-    if (post[8] == 1) {
-      newpost += "<a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",-1)'><img class = 'votebtns' src='/static/images/minus.png'></a><span class = 'vtotal'>";
-      newpost += vtotal + "</span><a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",0)'><img class = 'votebtns' src='/static/images/plusc.png'></a></a>";
-    }
-    if (post[8] == -1) {
-      newpost += "<a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",0)'><img class = 'votebtns' src='/static/images/minusc.png'></a><span class = 'vtotal'>";
-      newpost += vtotal + "</span><a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",1)'><img class = 'votebtns' src='/static/images/plus.png'></a></a>";
-    }
-    newpost +=  "<input type = 'button' class = 'replyToPost wbtn' value = 'reply' onclick = 'replyToPost(" + post[0] + ")' />";
-    if (post[10]) newpost += "<input type = 'button' class = 'replyToPost wbtn' value = 'delete' onclick = 'deletePost(" + post[0] + ")' />";
 
-    newpost += "</div>";
-     newpost += "<div class = 'replyArea' id = 'reply-to-post" + post[0] + "' style = 'margin-left: " + indent + "'></div>";
-
-
+  newpost += "<a href = '#' ><img class = 'votebtns' src='/static/images/minus.png'></a><span class = 'vtotal'>";
+  newpost += vtotal + "</span><a href = '#''><img class = 'votebtns' src='/static/images/plus.png'></a></a>";
 
     return newpost
 }
 
 function recentPosts() {
-stopDigitizing();
- $( '#createThread' ).html( '' );
  $( '#posts').html("");
 $.getJSON($SCRIPT_ROOT + '/_recent_posts',
   function (response) {
@@ -386,74 +360,6 @@ for (var i = 0; i<response.posts.length;i++) {
  groupobjects.setSource(groupobjectssrc);
 }
 
-function saveThread() {
-  //Save thread
-  $.getJSON($SCRIPT_ROOT + '/_save_thread',
-    {
-      nick: $("input#new-threadnick").val(),
-      name: encodeURIComponent($( "textarea#new-threadname").val())
-    },
-  function (response) {
-            getGroupThreads();
-        });
-}
-
-function savePost(objid) {
-  var text_data = $( "textarea#new-objinfo" ).val();
-  threadid = 0;
-  if ($("#postToThreadID").val()) var threadid = document.getElementById("postToThreadID").value;
-  $.post($SCRIPT_ROOT + '/_save_post',{
-     text: text_data,
-     objid: objid,
-     replyID: replyID,
-     threadid: threadid
-  },
-    function (response) {
-      replyID = null;
-      selectExisting=false;
-      $( "div#reply-to-post"+replyID ).html("");
-      $( "#posts" ).html("");
-      $( "#createThread" ).hide("fast");
-      $( "#createThread" ).html("");
-      //refresh map
-      var params = groupobjectssrc.getParams();
-      params.t = new Date().getMilliseconds();
-      groupobjectssrc.updateParams(params);
-      typeSelect.selectedIndex=0;
-      map.removeInteraction(draw);
-      map.removeInteraction(modify);
-      map.removeInteraction(select);
-      digitizing = false;
-      recentPosts();
-     });
-
-
-}
-
-function saveObject() {
-  typeSelect = document.getElementById('type');
-  if (typeSelect.options[typeSelect.selectedIndex].index==0) {
-	alert ("Choose a geography type, or if your post doesn't have geography choose none");
-    return;
-  }
-  var format = new ol.format['WKT']();
-  var data = format.writeFeatures(vector.getSource().getFeatures());  
-  if (data == "GEOMETRYCOLLECTION EMPTY" && typeSelect.options[typeSelect.selectedIndex].index<4) {
-	alert ("It looks like you haven't finished adding any geography. You may need to double click to finish drawing a line or polygon.");
-    return;
-  }
-  if (selectExisting >0) savePost(selectExisting);
-  else if (data == "GEOMETRYCOLLECTION EMPTY") savePost(null);
-  else {
-    vsource.clear();
-    $.getJSON($SCRIPT_ROOT + '/_save_object',{
-        jsonshp: encodeURIComponent(data)
-     },
-    function (response) {
-        savePost(response.objid);
-     });
-  }
-}
 
 function highlightObject(postid, objid) {
     if (selectedObjectSrc) selectedobject.setSource();
@@ -483,8 +389,7 @@ function highlightObject(postid, objid) {
        $("#posts").html("")
        for (var key in response.data) {
          console.log(key);
-         var newthread = "<div id = 'threadname'><div style = 'margin-right: 30px'>" + response.data[key].name + '</div>';
-         newthread += '<img class = "addpost" id = "addtothread' + key + '" src = /static/images/add.png onclick = "postToThread(' + key + ')" data-toggle="tooltip" title="Add to thread"><span class = "clickinst">Click to add a post</span></div>';
+         var newthread = "<div id = 'threadname'><div style = 'margin-right: 30px'>" + response.data[key].name + '</div></div';
          newthread += '<div class = "postToThread" id = "postToThread' + key + '"></div>';
          $("#posts").append(newthread);
          for (var i=0; i< response.data[key].posts.length; i++) {
@@ -504,82 +409,6 @@ function highlightObject(postid, objid) {
  }
 
 
-function newThread() {
-  $( "#posts" ).html("");
-  var html = '<div id = "createThread" class = "replyArea"><input type = "text" id = "new-threadnick" placeholder = "Nickname for Thread" /><br>';
-  html += '<textarea id = "new-threadname" placeholder = "Thread description"></textarea><br><br>';
-  html += '<input type = "button" value = "save" class = "btn bbtn" onclick = "saveThread()">';
-  html += '<input type = "button" value = "cancel" class = "btn bbtn" onclick = "$( `#createThread` ).html(``)"></div>';
-  $( "#posts" ).html(html);
-  $( "#createThread" ).show("fast");
-}
-
-
-function postToThread(threadid) {
-   if (!threadid) {
-    alert ("Choose a thread");
-    return;
-  }
-  if ($('#filter-by-thread').val(threadid).attr('class') == 'retired') {
-    alert("This thread is retired. No further posts accepted");
-    return;
-
-  }
-
-$( ".addpost").on({
- "mouseover" : function() {
-    this.src = '/static/images/addhover.png';
-  },
-  "mouseout" : function() {
-    this.src='/static/images/add.png';
-  }
-});
-$(".postToThread").css("display", "none");
-
-
-var addpostbuttons = document.getElementsByClassName("addpost");
-for (var i = 0; i<addpostbuttons.length; i++)   $( "#addtothread"+addpostbuttons[i].id).attr("onclick","postToThread("+addpostbuttons[i].id+")"); 
-
-$( "#addtothread"+threadid).on({
- "mouseover" : function() {
-    this.src = '/static/images/cancelhover.png';
-  },
-  "mouseout" : function() {
-    this.src='/static/images/cancel.png';
-  }
-});
-  $( "#addtothread"+threadid).attr("onclick","stopDigitizing("+threadid+")");
-  $( "#filter-by-thread").val(threadid);
-  postHTML += '<input type = "hidden" id = "postToThreadID" value = "' +threadid+ '" >';
-  $( "#postToThread"+threadid ).html(postHTML);
-  $( "#postToThread"+threadid ).show("fast");
-  var format = new ol.format['WKT']();
-  var data = format.writeFeatures(vector.getSource().getFeatures());
-  typeSelect = document.getElementById('type');
-  if (selectedobject) selectedobject.setSource();
-  typeSelect.onchange = function(e) {
-	map.removeInteraction(draw);
-	addInteraction();
-  }
-}
-
-function replyToPost(objid) {
-  replyID=objid;
-  var html = "<input type = 'hidden' name = 'objid' value = '";
-  html += objid;
-  html += "' />";   
-  html += postHTML;
-  $( "div#reply-to-post"+replyID ).html(postHTML);
-  $( "div#reply-to-post"+replyID ).append('<input type = "button" value = "cancel" class = "bbtn" onclick = "stopDigitizing()">');
-  $( "div#reply-to-post"+replyID ).show("fast");
-  typeSelect = document.getElementById('type');
-  typeSelect.onchange = function(e) {
-	map.removeInteraction(draw);
-	addInteraction();
-}
-
-}
-
 function showReplies(postid) {
 if ($( "div#replies-to-" + postid).css( "display") == "none") {
   $( "div#replies-to-" + postid).css( "display", "block");
@@ -590,40 +419,6 @@ else {
   $( "input#expand-replies-to" + postid).val("+");
 }
 }
-
-function stopDigitizing(threadid) {
-digitizing = false;
-map.removeInteraction(draw);
-map.removeInteraction(select);
-map.removeInteraction(modify);
-vsource.clear();
-$( "#postToThread"+threadid ).html('');
-$( "#postToThread"+threadid ).hide("fast");
-selectExisting=false;
-$( "div#reply-to-post"+replyID ).html("");
-$( "div#addNewThread" ).html("");
-$( "div#addNewThread" ).hide("fast");
-$( "#addtothread"+threadid).on({
- "mouseover" : function() {
-    this.src = '/static/images/addhover.png';
-  },
-  "mouseout" : function() {
-    this.src='/static/images/add.png';
-  }
-});
-  $( "#addtothread"+threadid).attr("onclick","postToThread("+threadid+")");
-  $( "div#reply-to-post"+replyID ).hide("fast");
-}
-
-
-function updateVote(user,post,vote) {
-  $.getJSON($SCRIPT_ROOT + '/_cast_vote', {
-    post: post,
-    vote: vote
-    }, function(response) {
-      highlightObject(post,null)
-    })
-  }
 
 function zoomTo(objid) {
   $.getJSON($SCRIPT_ROOT + '/_zoom_to', {
@@ -639,13 +434,3 @@ function zoomTo(objid) {
 
   })
 }
-
-function deletePost(postid) {
-  $.getJSON($SCRIPT_ROOT + '/_delete_post', {
-  postid:postid
-  },
-  function (response) {
-    recentPosts()
-  })
-  }
-

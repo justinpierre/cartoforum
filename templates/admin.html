@@ -48,11 +48,9 @@ var groupid = {{ groupid }};
 <table id = "users" class = "admintable">
   <tr><th>Users</th></tr>
   <tr><td>
+        <input class = 'inviteuserid' id = 'invitee' placeholder = 'invite by username'>
+	    <input type = 'submit' class = 'btn wbtn' value = 'send invite' onclick = 'sendInvite()'>
 
-	<form method = 'GET' action = '/invite_user' class = 'invite'>
-        <input class = 'inviteuserid' name = 'invitee' placeholder = 'invite by username'>"
-	    <input type = 'submit' class = 'btn wbtn' value = 'send invite'>
-    </form>
   <td><tr>
 
 <table id = "tools" class = "admintable">
