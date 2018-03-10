@@ -61,16 +61,16 @@ function init() {
 
 
  light = new ol.layer.Tile({
-      source: new ol.source.XYZ({url: 'http://s.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'}),
+      source: new ol.source.XYZ({url: 'https://s.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'}),
       sphericalMercator: true,
-      attributions: [new ol.Attribution({ html: ['&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'] })]
+      attributions: [new ol.Attribution({ html: ['&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'] })]
     });
 
 dark = new ol.layer.Tile({
       visible:false,
-      source: new ol.source.XYZ({url: 'http://s.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'}),
+      source: new ol.source.XYZ({url: 'https://s.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'}),
       sphericalMercator: true,
-      attributions: [new ol.Attribution({ html: ['&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'] })]
+      attributions: [new ol.Attribution({ html: ['&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'] })]
     });
 
    aerial = new ol.layer.Tile({
@@ -83,7 +83,7 @@ dark = new ol.layer.Tile({
   });
 
 groupobjectssrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-url: 'http://cartoforum.com:8080/geoserver/wms',
+url: 'https://cartoforum.com:8443/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:groupobjects', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid},
 		serverType: 'geoserver'
 	     }));if (style == 1) dark.setVisible(1);
@@ -126,7 +126,7 @@ map.on('singleclick', function(e) {
 	}
   var viewResolution = /** @type {number} */ (map.getView().getResolution());
   var url = groupobjectssrc.getGetFeatureInfoUrl( e.coordinate, viewResolution, 'EPSG:3857', {'INFO_FORMAT': 'text/html'});
-  url = "http://127.0.0.1" + url.substring(21);
+  url = "https://127.0.0.1" + url.substring(21);
   url="/_discovery_popup?url="+encodeURIComponent(url);
 
   var xmlhttp = new XMLHttpRequest();
@@ -192,7 +192,7 @@ $('#filter-by-thread').change(function(){
        }
        });
      threadsrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-     url: 'http://cartoforum.com:8080/geoserver/wms',
+     url: 'https://cartoforum.com:8443/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:threadview', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid+';threadid:'+threadid},
 		serverType: 'geoserver'
 	     }));
@@ -459,7 +459,7 @@ function highlightObject(postid, objid) {
     if (selectedObjectSrc) selectedobject.setSource();
     if (objid) {
       selectedObjectSrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-      url: 'http://cartoforum.com:8080/geoserver/wms',
+      url: 'https://cartoforum.com:8443/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:SelectedFeatures', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'objid:'+objid},
 		serverType: 'geoserver'
 	     }));

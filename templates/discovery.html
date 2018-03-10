@@ -24,13 +24,13 @@ container = document.getElementById('popup');
   };
 
   var base = new ol.layer.Tile({
-      source: new ol.source.XYZ({url: 'http://s.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'}),
+      source: new ol.source.XYZ({url: 'https://s.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'}),
       sphericalMercator: true,
-      attributions: [new ol.Attribution({ html: ['&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'] })]
+      attributions: [new ol.Attribution({ html: ['&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'] })]
     });
   
 var groupssrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-url: 'http://cartoforum.com:8080/geoserver/wms',
+url: 'http://cartoforums.com:8443/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:groups', 'TRANSPARENT': true, 'TILED': false},
 		serverType: 'geoserver'
 	     }));
@@ -90,6 +90,9 @@ url: 'http://cartoforum.com:8080/geoserver/wms',
 </form>
 </header>
 <div id = "content">
+	{% if invite == 'sent' %}
+	    <span>Request for invite sent</span>
+	{% endif %}
 <div id = "discoverymap">
 <div id = "popup" class = "ol-popup">
 	<a href="#" id="popup-closer" class="ol-popup-closer"></a>

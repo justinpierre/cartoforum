@@ -38,30 +38,37 @@
             <form id = "loginform" method = "POST" action = "/login">
                 <input type = "username" name = "username" placeholder = "username">
                 <input type = "password" name = "password" placeholder = "password">
+                <br>
                 <input type = "submit" class = 'bbtn btn' value = "login">
+                 <a href = "#" onclick = "$('#recoverpassword').show('fast')" class = 'recoverpassword'>Recover Password</a>
+                 <div id = "recoverpassword">
+                    <form method = "POST" action = "/_recover_password">
+                        <input type = "text" placeholder = "enter your email address" name = "email">
+                        <input type = "submit" value = "send me an update link" class = "wbtn btn">
+                    </form>
+                </div>
             </form>
+            <br><br>
                 <img src="https://g.twimg.com/dev/sites/default/files/images_documentation/sign-in-with-twitter-gray.png" id = "twittersubmit" onclick = '$("#twittersignin").submit()'>
             <form id = "twittersignin" action = "/twitter-oauth" method = "POST">
 
             </form>
                 <h1>Create Account</h1>
                 <form id = "createAccount" method = "POST" action = "/create_account">
-                    <input type = "email" name = "email" placeholder = "enter your email address">
-                    <input type = "password" name = "password" placeholder = "select a password">
+                    <input type = "email" name = "email" placeholder = "email address">
+                    <input type = "password" name = "password" placeholder = "password">
                     <input type = "submit" value = "continue" class="btn bbtn">
                 </form>
                 {% endif %}
                 {% endblock %}
-                <input type = "button" href = "#" onclick = "$('#recoverpassword').show('fast')" value = "Recover Password">
-                <div id = "recoverpassword">
-                    <form method = "POST" action = "/_recover_password">
-                        <input type = "text" placeholder = "enter your email address" name = "email">
-                        <input type = "submit" value = "send me an update link" class = "wbtn btn">
-                    </form>
-                </div>
+
+
         </div>
 
             <div id = "description">
+            {% if login == 'failed' %}
+                <span>login failed</span>
+            {% endif %}
             </div>
 
         </div>

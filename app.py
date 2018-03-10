@@ -4,7 +4,7 @@ __author__ = u'justinpierre'
 
 from flask import Flask
 from flask import render_template, jsonify, flash, redirect, request, session, abort, url_for
-
+from flask_mail import Mail, Message
 
 import psycopg2
 import hashlib
@@ -139,6 +139,18 @@ class GroupRequests(base):
 
 
 app = Flask(__name__)
+mail=Mail(app)
+
+app.config.update(
+    DEBUG=True,
+    MAIL_SERVER='smtp.gmail.com',
+    MAIL_PORT=587,
+    MAIL_USE_TLS=True,
+    MAIL_USE_SSL=False,
+    MAIL_USERNAME=config.mailusername,
+    MAIL_PASSWORD=config.mailpassword
+    )
+mail=Mail(app)
 
 Session = sessionmaker(db)
 sess = Session()
@@ -195,12 +207,13 @@ def do_login():
         m = hashlib.sha256()
         m.update(request.form['password'].encode("utf-8"))
         hashpwd = m.hexdigest()
-        if u.password.strip() == hashpwd or u.password.strip()==hashpwd[0:59]:
+        if u.password.strip() == hashpwd or u.password.strip() == hashpwd[0:59]:
             session['logged_in'] = True
             session['userid'] = u.userid
         else:
-            flash('wrong password')
+            return render_template('index.html', login='failed')
     return index()
+
 
 @app.route('/select_username', methods = ['POST'])
 def select_username():
@@ -230,6 +243,20 @@ def recover_password():
         sess.add(newrequest)
         sess.commit()
         resetlink = "https://cartoforum.com/resetpassword?token={}".format(token)
+        msg = Message(
+            'Hello',
+            sender='Cartoforum',
+            recipients=[email])
+        msg.body = resetlink
+        mail.send(msg)
+        return render_template('index.html', status='resetlinksent')
+
+@app.route('/resetpassword', methods = ['GET'])
+def reset_password():
+    token = request.args.get('token')
+    userid = sess.query(PasswordReset).filter_by(token=token).filter_by(used='f').one().userid
+    if userid >0:
+        return render_template('passwordreset.html', userid=userid)
 
 
 @app.route('/logout', methods=['POST'])
@@ -378,6 +405,13 @@ def accept_invite():
     return render_template('groupselect.html')
 
 
+@app.route('/request_invite', methods=['POST'])
+def request_invite():
+    gid = request.form['gid']
+    newinvite = InviteMe(userid=session['userid'], groupid=gid, date=datetime.datetime.utcnow())
+    sess.add(newinvite)
+    return render_template("discover.html", invite="sent")
+
 @app.route('/createGroup', methods=['POST'])
 def create_group():
     groupname = request.form['groupname']
@@ -423,7 +457,7 @@ def discovery_popup():
     parsed = urlparse.urlparse(onlineresource)
     host = parsed.netloc
 
-    if host != "127.0.0.1:8080":
+    if host != "127.0.0.1:8443":
         return "Host not allowed"
     r = requests.get(onlineresource,auth=HTTPBasicAuth(config.argoomapusername,config.argoomappassword))
     return r.text
@@ -495,6 +529,7 @@ def recent_posts():
 
 @app.route('/_user_posts', methods=['GET'])
 def user_posts():
+    vtotal = voted = None
     userid = request.args.get('userid',0,type=str)
     posts = []
     for p, t, u in sess.query(Post, Thread, Users).filter_by(userid=userid).join(Thread).join(Users):
@@ -670,7 +705,6 @@ def delete_post():
             cur.execute("DELETE from mapobjects where objectid = {}".format(objectid))
             pgconnect.commit()
     return jsonify('success')
-
 
 
 @app.route('/_save_object', methods=['GET'])
