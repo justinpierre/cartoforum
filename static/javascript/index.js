@@ -117,14 +117,15 @@ if (r == true) {
 function getUserGroups() {
     $.getJSON($SCRIPT_ROOT + '/_get_user_groups',
     function(data) {
+    $("#groups").html('')
         if (data.groups.length == 0) {
-            $("#description").append("You don't belong to any groups yet.<br><br>");
-            $("#description").append("check out the ");
-            $("#description").append("<input type = 'button' value = 'Discovery Map' onclick = 'goToDisc()'");
-            $("#description").append(" for some inspiration");
+            $("#groups").append("You don't belong to any groups yet.<br><br>");
+            $("#groups").append("check out the ");
+            $("#groups").append("<input type = 'button' value = 'Discovery Map' onclick = 'goToDisc()'");
+            $("#groups").append(" for some inspiration");
         }
         else {
-            $("#description").append("<table>");
+            $("#groups").append("<table>");
             for (var i=0; i < data.groups.length; i++) {
                 var newrow = $("<tr></tr>");
                 var newcell = $("<td></td>");
@@ -144,9 +145,9 @@ function getUserGroups() {
                 else {
                     newrow.append('<td></td>')
                 }
-                $("#description").append(newrow);
+                $("#groups").append(newrow);
             }
-            $("#description").append("</table>");
+            $("#groups").append("</table>");
         }
     })
     getUserInvites();
@@ -186,20 +187,22 @@ function getUserInvites() {
 
 
 function groupCreate() {
-    $.ajax({
-        url: $SCRIPT_ROOT + '/createGroup',
-        type: 'POST',
-        contentType: 'application/json;charset=UTF-8',
-        cache: false,
-        data: JSON.stringify({'groupname': $("#groupName").val(), 'opengroup': $("#opengroup").val(), 'bounds': $("#bounds").val()}),
-        success: function (response) {
+    $.getJSON($SCRIPT_ROOT + '/createGroup',
+        {groupname: $("#groupName").val(),
+        opengroup: $("#opengroup").val(),
+        bounds: $("#bounds").val()
+        },
+        function(response) {
             $("#description").html()
             $( "#newGroup" ).hide( "fast" );
             getUserGroups();
-
+            if (response['groupid']) {
+               $("#status").html('Group created');
+               $("#status").show("slow").delay(800).hide("slow");
+            }
         }
 
-    })
+    )
 }
 
 function getThreads() {

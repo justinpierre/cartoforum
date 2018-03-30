@@ -30,7 +30,7 @@ container = document.getElementById('popup');
     });
   
 var groupssrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-url: 'http://cartoforums.com:8443/geoserver/wms',
+url: 'https://cartoforum.com:8443/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:groups', 'TRANSPARENT': true, 'TILED': false},
 		serverType: 'geoserver'
 	     }));
@@ -55,7 +55,7 @@ url: 'http://cartoforums.com:8443/geoserver/wms',
 	var viewResolution = /** @type {number} */ (map.getView().getResolution());
 	var url = groupssrc.getGetFeatureInfoUrl( e.coordinate, viewResolution, 'EPSG:3857', {'INFO_FORMAT': 'text/html'});
 	/*change QUERY_LAYERS to visibleLayers in url*/
-        url = "http://127.0.0.1" + url.substring(21);
+        url = "https://cartoforum.com" + url.substring(22);
         url+="&FEATURE_COUNT=15";
 	url = "/_discovery_popup?url="+encodeURIComponent(url);
 	

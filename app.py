@@ -13,135 +13,30 @@ import datetime
 import urlparse
 import re
 from flask_oauth import OAuth
+# from rauth import OAuth2Session
 
+
+from orm_classes import Users, Group, Post, Thread, UsersGroups, PasswordReset, TwitterUsers, Votes, GroupRequests, \
+    InviteMe, sess
 
 import sqlalchemy
-from sqlalchemy import create_engine
+
 from sqlalchemy import Column, String, Integer, Date, Boolean, ForeignKey, asc
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm import relationship
-
-oauth = OAuth()
-twitter = oauth.remote_app('twitter',
-                           base_url='https://api.twitter.com/1/',
-                           request_token_url='https://api.twitter.com/oauth/request_token',
-                           access_token_url='https://api.twitter.com/oauth/access_token',
-                           authorize_url='https://api.twitter.com/oauth/authorize',
-                           consumer_key=config.ckey,
-                           consumer_secret=config.csecret
-                           )
-
-db_string = "postgres://{}:{}@localhost:5432/{}".format(config.dbusername,config.dbpassword,config.dbname)
-db = create_engine(db_string)
-base = declarative_base()
-
-class Users(base):
-    __tablename__ = 'users'
-    userid = Column(Integer,primary_key=True)
-    username = Column(String)
-    password = Column(String)
-    email = Column(String)
-    verified = Column(Boolean)
-    twitterid = Column(Integer)
 
 
-class PasswordReset(base):
-    __tablename__ = 'passwordreset'
-    requestid = Column(Integer, primary_key=True)
-    userid = Column(Integer, ForeignKey("users.userid"))
-    date = Column(Date)
-    token = Column(String)
-    used = Column(Boolean)
-    passwordreset_users = relationship("Users", foreign_keys=[userid])
+class Auth:
+    CLIENT_ID = config.gid
+    CLIENT_SECRET = config.gsecret
+    REDIRECT_URI = 'https://cartoforum.com/gCallback'
+    AUTH_URI = 'https://cf_accounts.google.com/o/oauth2/cf_accounts'
+    TOKEN_URI = 'https://cf_accounts.google.com/o/oauth2/token'
+    USER_INFO = 'https://www.googleapis.com/userinfo/v2/me'
 
 
-class TwitterUsers(base):
-    __tablename__ = 'twitterusers'
-    id = Column(Integer,primary_key=True)
-    oauth_provider = Column(String)
-    oauth_uid = Column(String)
-    oauth_token = Column(String)
-    oauth_secret = Column(String)
-    username = Column(String)
+cfapp = Flask(__name__)
+mail = Mail(cfapp)
 
-
-class Post(base):
-    __tablename__ = 'posts'
-    postid = Column(Integer,primary_key=True)
-    userid = Column(Integer, ForeignKey("users.userid"))
-    groupid = Column(Integer)
-    objectid = Column(Integer)
-    date = Column(Date)
-    postcontent = Column(String)
-    responseto = Column(Integer)
-    threadid = Column(Integer, ForeignKey("thread.threadid"))
-    post_thread = relationship("Thread", foreign_keys=[threadid])
-    post_users = relationship("Users", foreign_keys=[userid])
-
-class Thread(base):
-    __tablename__ = 'thread'
-    threadid = Column(Integer,primary_key=True)
-    nickname = Column(String)
-    name = Column(String)
-    groupid = Column(Integer, ForeignKey("groups.groupid"))
-    resolved = Column(Integer)
-    retired = Column(Boolean)
-    thread_group = relationship("Group", foreign_keys=[groupid])
-
-
-class UsersGroups(base):
-    __tablename__ = 'usersgroups'
-    userid = Column(Integer, ForeignKey("users.userid"), primary_key=True)
-    groupid = Column(Integer, ForeignKey("groups.groupid"), primary_key=True)
-    usersgroups_users = relationship("Users", foreign_keys=[userid])
-    usersgroups_groups = relationship("Group", foreign_keys=[groupid])
-
-
-class Group(base):
-    __tablename__ = 'groups'
-    groupid = Column(Integer,primary_key=True)
-    groupname = Column(String)
-    userid = Column(Integer)
-    bounds = Column(String)
-    opengroup = Column(Boolean)
-
-
-class Votes(base):
-    __tablename__ = 'votes'
-    userid = Column(Integer, ForeignKey("users.userid"), primary_key=True)
-    postid = Column(Integer, ForeignKey("posts.postid"), primary_key=True)
-    vote = Column(Integer)
-    votes_posts = relationship("Post", foreign_keys=[postid])
-    votes_users = relationship("Users", foreign_keys=[userid])
-
-
-class InviteMe(base):
-    __tablename__ = 'inviteme'
-    requestid = Column(Integer, primary_key=True)
-    userid = Column(Integer, ForeignKey("users.userid"))
-    groupid = Column(Integer, ForeignKey("groups.groupid"))
-    date = Column(Date)
-    accepted = Column(Boolean)
-    inviteme_users = relationship("Users",foreign_keys=[userid])
-    inviteme_group = relationship("Group",foreign_keys=[groupid])
-
-class GroupRequests(base):
-    __tablename__= 'grouprequests'
-    requestid = Column(Integer,primary_key=True)
-    requester = Column(Integer, ForeignKey("users.userid"))
-    invitee = Column(Integer)
-    groupid = Column(Integer,ForeignKey("groups.groupid"))
-    dateissued = Column(Date)
-    complete = Column(Boolean)
-    grouprequests_users = relationship("Users",foreign_keys=[requester])
-    grouprequests_group = relationship("Group",foreign_keys=[groupid])
-
-
-app = Flask(__name__)
-mail=Mail(app)
-
-app.config.update(
+cfapp.config.update(
     DEBUG=True,
     MAIL_SERVER='smtp.gmail.com',
     MAIL_PORT=587,
@@ -150,15 +45,16 @@ app.config.update(
     MAIL_USERNAME=config.mailusername,
     MAIL_PASSWORD=config.mailpassword
     )
-mail=Mail(app)
+mail = Mail(cfapp)
 
-Session = sessionmaker(db)
-sess = Session()
 
-base.metadata.create_all(db)
 
-app.secret_key = config.secret_key
-app.config['SESSION_TYPE'] = 'filesystem'
+cfapp.secret_key = config.secret_key
+cfapp.config['SESSION_TYPE'] = 'filesystem'
+
+
+
+
 try:
     pgconnect = psycopg2.connect(database=config.dbname, user=config.dbusername,
                                  password=config.dbpassword, host='localhost', port=config.dbport)
@@ -167,32 +63,8 @@ except:
 
 cur = pgconnect.cursor()
 
-
-@app.route('/groupselect', methods=['POST'])
-def group_select():
-    username = sess.query(Users).filter_by(userid=session['userid']).one().username
-    return render_template('groupselect.html', username=username)
-
-
-@app.route('/create_account', methods=['POST'])
-def create_account():
-    email = request.form['email']
-    password = request.form['password']
-    m=hashlib.sha256()
-    m.update(password.encode("utf-8"))
-    hashpass = m.hexdigest()
-    emailexists = sess.query(Users).filter_by(email=email).count()
-    if emailexists > 0:
-        return index()
-    else:
-        newuser = Users(email=email, password=hashpass,username=email)
-        sess.add(newuser)
-        sess.commit()
-        session['userid'] = sess.query(Users).filter_by(email=email).one().userid
-        return render_template('accountsetup.html', email=email)
-
-
-@app.route('/')
+from account_mgmt import logins, invites, twitter
+@cfapp.route('/')
 def index():
     if not session.get('logged_in'):
         return render_template('index.html')
@@ -201,124 +73,26 @@ def index():
         return render_template('groupselect.html', username=username)
 
 
-@app.route('/login', methods=['POST'])
-def do_login():
-    for u in sess.query(Users).filter_by(username=request.form['username']):
-        m = hashlib.sha256()
-        m.update(request.form['password'].encode("utf-8"))
-        hashpwd = m.hexdigest()
-        if u.password.strip() == hashpwd or u.password.strip() == hashpwd[0:59]:
-            session['logged_in'] = True
-            session['userid'] = u.userid
-        else:
-            return render_template('index.html', login='failed')
-    return index()
 
 
-@app.route('/select_username', methods = ['POST'])
-def select_username():
-    username = request.form['username']
-    u = sess.query(Users).filter_by(userid=session['userid']).first()
-    u.username = username
-    sess.commit()
-    return index()
 
 
-@app.route('/_recover_password', methods = ['POST'])
-def recover_password():
-    email = request.form['email']
-    exists = sess.query(Users).filter_by(email=email).count()
-    if exists == 0:
-        return jsonify("Can't find that email address")
-    elif exists > 1:
-        return jsonify("Something terrible has happened")
-    else:
-        userid = sess.query(Users).filter_by(email=email).one().userid
-        now = datetime.datetime.utcnow()
-        m = hashlib.sha256()
-        for i in [str(userid),str(now),email]:
-            m.update(i.encode("utf-8"))
-        token = m.hexdigest()
-        newrequest = PasswordReset(userid=userid, token=token, date=now, used='f')
-        sess.add(newrequest)
-        sess.commit()
-        resetlink = "https://cartoforum.com/resetpassword?token={}".format(token)
-        msg = Message(
-            'Hello',
-            sender='Cartoforum',
-            recipients=[email])
-        msg.body = resetlink
-        mail.send(msg)
-        return render_template('index.html', status='resetlinksent')
 
-@app.route('/resetpassword', methods = ['GET'])
-def reset_password():
-    token = request.args.get('token')
-    userid = sess.query(PasswordReset).filter_by(token=token).filter_by(used='f').one().userid
-    if userid >0:
-        return render_template('passwordreset.html', userid=userid)
+# def get_google_auth(state=None, token=None):
+#     if token:
+#         return OAuth2Session(Auth.CLIENT_ID, token=token)
+#     if state:
+#         return OAuth2Session(
+#             Auth.CLIENT_ID,
+#             state=state,
+#             redirect_uri=Auth.REDIRECT_URI)
+#     oauth = OAuth2Session(
+#         Auth.CLIENT_ID,
+#         redirect_uri=Auth.REDIRECT_URI,
+#         scope=Auth.SCOPE)
+#     return oauth
 
-
-@app.route('/logout', methods=['POST'])
-def do_logout():
-    session['logged_in'] = False
-    session['userid'] = None
-    return index()
-
-
-@app.route('/twitter-oauth', methods=['POST'])
-def twitter_oauth():
-    if session.has_key('twitter_token'):
-        del session['twitter_token']
-    return twitter.authorize(callback=url_for('oauth_authorized',
-                             next=request.args.get('next') or request.referrer or None))
-
-
-@app.route('/oauth-authorized')
-@twitter.authorized_handler
-def oauth_authorized(resp):
-    next_url = request.args.get('next') or url_for('index')
-    if resp is None:
-        flash(u'You denied the request to sign in.')
-        return redirect(next_url)
-
-    session['twitter_token'] = (
-        resp['oauth_token'],
-        resp['oauth_token_secret']
-    )
-    session['twitter_user'] = resp['screen_name']
-    twitteruser = sess.query(TwitterUsers).filter_by(username=resp['screen_name']).count()
-    print(twitteruser)
-
-    flash('You were signed in as %s' % resp['screen_name'])
-    if twitteruser == 0:
-        tu = TwitterUsers(oauth_provider='twitter', username=resp['screen_name'], oauth_uid=resp['user_id'],
-                          oauth_token=resp['oauth_token'], oauth_secret=resp['oauth_token_secret'])
-        sess.add(tu)
-        sess.commit()
-
-    else:
-        tu = sess.query(TwitterUsers).filter_by(username=resp['screen_name']).first()
-        tu.oauth_token = resp['oauth_token']
-        tu.oauth_secret = resp['oauth_token_secret']
-        sess.commit()
-    userquery = sess.query(Users).filter_by(username='@{}'.format(resp['screen_name'])).count()
-    if userquery == 0:
-        newuser = Users(username='@{}'.format(resp['screen_name']), password='twitter_user', twitterid=resp['user_id'])
-        sess.add(newuser)
-        sess.commit()
-    tulogged = sess.query(Users).filter_by(username='@{}'.format(resp['screen_name'])).one()
-    session['userid'] = tulogged.userid
-    session['logged_in'] = True
-    return render_template('groupselect.html', username=resp['screen_name'])
-
-
-@twitter.tokengetter
-def get_twitter_token(token=None):
-    return session.get('twitter_token')
-
-
-@app.route('/_get_user_groups', methods=['GET'])
+@cfapp.route('/_get_user_groups', methods=['GET'])
 def get_user_groups():
     groups = []
     for g, u in sess.query(Group, UsersGroups).join(UsersGroups).filter_by(userid=session['userid']):
@@ -329,96 +103,21 @@ def get_user_groups():
     return jsonify(groups=groups)
 
 
-@app.route('/_get_group_users', methods=['GET'])
+@cfapp.route('/_get_group_users', methods=['GET'])
 def get_group_users():
     users = []
     for u, ug in sess.query(Users, UsersGroups).join(UsersGroups).filter_by(groupid=session['groupid']):
         users.append({"name":u.username, "userid": u.userid})
     return jsonify(users=users)
 
-@app.route('/invite_user', methods=['GET'])
-def invite_user():
-    invitee = request.args.get('invitee', type=str)
-    try:
-      inviteeuserid = sess.query(Users).filter_by(username=invitee).one().userid
-    except:
-        return jsonify(response="user doesn't exist")
-    inviteexists = sess.query(GroupRequests).filter_by(invitee=inviteeuserid).filter_by(groupid=session['groupid']).count()
-    if inviteexists > 0:
-        return jsonify(response='invite already exists')
-    useringroup = sess.query(UsersGroups).filter_by(groupid=session['groupid']).filter_by(userid=inviteeuserid).count()
-    if useringroup>0:
-        return jsonify(response='user already in group')
-    newinvite = GroupRequests(requester=session['userid'],invitee=inviteeuserid,groupid=session['groupid'],dateissued=datetime.datetime.utcnow(),complete='f')
-    sess.add(newinvite)
-    sess.commit()
-    return jsonify(response='invite sent')
 
-
-@app.route('/_get_user_invites', methods=['GET'])
-def get_user_invites():
-    invreq = {'invites': [], 'requests': []}
-    for gr,g,u in sess.query(GroupRequests,Group,Users).filter_by(invitee=session['userid']).filter_by(complete='f').join(Group).join(Users):
-        invreq['requests'].append({"requestid": gr.requestid,"requester":u.username,"group":g.groupname,"date":gr.dateissued})
-
-    cur.execute("SELECT inviteme.requestid, users.username, groups.groupname, inviteme.date "
-                "FROM inviteme INNER JOIN users ON users.userid = inviteme.userid "
-                "JOIN groups ON groups.groupid = inviteme.groupid  "
-                "WHERE accepted is null AND groups.userid = '{}'".format(session['userid']))
-    response = cur.fetchall()
-    for row in response:
-        invreq['requests'].append({"requestid": row[0], "requester": row[1], "group": [2], "date": row[3]})
-    pgconnect.commit()
-    return jsonify(invites=invreq)
-
-
-@app.route('/manageRequest', methods=['POST'])
-def manage_request():
-    requestid = request.form['requestid']
-    action = request.form['submit']
-
-    cur.execute("SELECT groupid,invitee FROM grouprequests WHERE requestid = {};".format(requestid))
-    response = cur.fetchall()
-
-    for row in response:
-        if action == 'accept':
-            # make sure it doesn't add twice
-            cur.execute("INSERT INTO usersgroups VALUES ({},{})".format(row[1],row[0]))
-        cur.execute("UPDATE grouprequests set complete = 't' WHERE requestid = {}".format(requestid))
-        pgconnect.commit()
-    return render_template('groupselect.html')
-
-
-@app.route('/manageInvite', methods=['POST'])
-def accept_invite():
-    requestid = request.form['requestid']
-    action = request.form['submit']
-
-    cur.execute("SELECT groupid FROM inviteme WHERE requestid = {};".format(requestid))
-    response = cur.fetchall()
-    for row in response:
-        if action == 'accept':
-            # make sure it doesn't add twice
-            cur.execute("INSERT INTO usersgroups VALUES ({},{})".format(session['userid'],row[0]))
-        cur.execute("UPDATE inviteme set complete = true WHERE requestid = {}".format(requestid))
-        pgconnect.commit()
-    return render_template('groupselect.html')
-
-
-@app.route('/request_invite', methods=['POST'])
-def request_invite():
-    gid = request.form['gid']
-    newinvite = InviteMe(userid=session['userid'], groupid=gid, date=datetime.datetime.utcnow())
-    sess.add(newinvite)
-    return render_template("discover.html", invite="sent")
-
-@app.route('/createGroup', methods=['POST'])
+@cfapp.route('/createGroup', methods=['GET'])
 def create_group():
-    groupname = request.form['groupname']
-    bounds = request.form['bounds']
-    bounds_arr = request.form['bounds'].split(" ")
+    groupname = request.args.get('groupname')
+    bounds = request.args.get('bounds')
+    bounds_arr = request.args.get('bounds').split(" ")
     opengroup = 'false'
-    if request.form['opengroup'] == 'on':
+    if request.args.get('opengroup') == 'on':
         opengroup = 'true'
     cur.execute("INSERT INTO groups (geom, groupname, userid, bounds,opengroup) "
                 "VALUES (ST_Centroid(ST_GeomFromText('MULTIPOINT ({} {},{} {})')), '{}', {}, '{}', {})".
@@ -429,15 +128,26 @@ def create_group():
         groupid = row[0]
     cur.execute("INSERT INTO usersgroups VALUES ({},{})".format(session['userid'],groupid))
     pgconnect.commit()
-    return groupid
+    return jsonify(groupid=groupid)
 
 
-@app.route('/discovery', methods=['POST'])
+@cfapp.route('/delete_group', methods=['POST'])
+def delete_group():
+
+    cur.execute("Delete from mapobjects where groupid = {}".format(session['groupid']))
+    pgconnect.commit()
+    sess.query(Post).filter_by(groupid=session['groupid']).delete()
+    sess.query(Thread).filter_by(groupid=session['groupid']).delete()
+    sess.query(Group).filter_by(groupid=session['groupid']).delete()
+    return render_template('groupselect.html')
+
+
+@cfapp.route('/discovery', methods=['POST'])
 def go_to_disc():
     return render_template('discovery.html')
 
 
-@app.route('/viewmap', methods=['GET'])
+@cfapp.route('/viewmap', methods=['GET'])
 def readonly_view():
     session['groupid'] = groupid = request.args.get('group', 0, type=str)
     cur.execute("SELECT groupname,bounds from groups where groupid = {}".format(groupid))
@@ -448,7 +158,7 @@ def readonly_view():
     return render_template('map.html', groupid=groupid, groupname=groupname, bounds=bounds, userid=0)
 
 
-@app.route('/_discovery_popup')
+@cfapp.route('/_discovery_popup')
 def discovery_popup():
     import config
     from requests.auth import HTTPBasicAuth
@@ -456,14 +166,13 @@ def discovery_popup():
     onlineresource = request.args.get('url')
     parsed = urlparse.urlparse(onlineresource)
     host = parsed.netloc
-
-    if host != "127.0.0.1:8443":
+    if host != "cartoforum.com:8443":
         return "Host not allowed"
     r = requests.get(onlineresource,auth=HTTPBasicAuth(config.argoomapusername,config.argoomappassword))
     return r.text
 
 
-@app.route('/admin', methods=['POST'])
+@cfapp.route('/admin', methods=['POST'])
 def go_to_admin():
     session['groupid'] = groupid = request.form['groupid']
     uid = sess.query(Group).filter_by(groupid=groupid).filter_by(userid=session['userid']).count()
@@ -473,7 +182,7 @@ def go_to_admin():
         return index()
 
 
-@app.route('/_get_group_threads', methods=['GET'])
+@cfapp.route('/_get_group_threads', methods=['GET'])
 def get_group_threads():
     groupid = session['groupid']
     threads = []
@@ -482,7 +191,7 @@ def get_group_threads():
     return jsonify(threads=threads)
 
 
-@app.route('/_get_thread_posts', methods=['GET'])
+@cfapp.route('/_get_thread_posts', methods=['GET'])
 def get_thread_posts():
     threads=[]
     threadid = request.args.get('threadid', 0, type=str)
@@ -493,7 +202,7 @@ def get_thread_posts():
     return jsonify(threads=threads)
 
 
-@app.route('/map', methods=['POST'])
+@cfapp.route('/map', methods=['POST'])
 def go_to_group():
     groupid = request.form['groupid']
     session['groupid'] = request.form['groupid']
@@ -512,7 +221,7 @@ def go_to_group():
     pgconnect.commit()
 
 
-@app.route('/_recent_posts', methods=['GET'])
+@cfapp.route('/_recent_posts', methods=['GET'])
 def recent_posts():
     userid = session['userid'] if 'userid' in session else 0
     posts = []
@@ -527,7 +236,7 @@ def recent_posts():
     return jsonify(posts=posts)
 
 
-@app.route('/_user_posts', methods=['GET'])
+@cfapp.route('/_user_posts', methods=['GET'])
 def user_posts():
     vtotal = voted = None
     userid = request.args.get('userid',0,type=str)
@@ -542,7 +251,7 @@ def user_posts():
     return jsonify(posts=posts)
 
 
-@app.route('/_get_post', methods=['GET'])
+@cfapp.route('/_get_post', methods=['GET'])
 def get_post():
     thread_data = {}
     clicked_post = []
@@ -635,7 +344,7 @@ def get_post():
     return jsonify(data=thread_data)
 
 
-@app.route('/_search_posts', methods = ['GET'])
+@cfapp.route('/_search_posts', methods = ['GET'])
 def search_posts():
     userid = session['userid'] if 'userid' in session else 0
     posts = []
@@ -651,7 +360,7 @@ def search_posts():
     return jsonify(posts=posts)
 
 
-@app.route('/_posts_by_extent', methods=['GET'])
+@cfapp.route('/_posts_by_extent', methods=['GET'])
 def posts_by_extent():
     posts = []
     extent = request.args.get('ext', 0, type=str)
@@ -673,7 +382,7 @@ def posts_by_extent():
     return jsonify(posts=posts)
 
 
-@app.route('/_zoom_to',methods=['GET'])
+@cfapp.route('/_zoom_to', methods=['GET'])
 def zoom_to():
     bbox = ''
     objid = request.args.get('objid',0,type=int)
@@ -685,7 +394,7 @@ def zoom_to():
     return jsonify(bounds=bbox)
 
 
-@app.route('/_delete_post',methods=['GET'])
+@cfapp.route('/_delete_post', methods=['GET'])
 def delete_post():
     postid = request.args.get('postid', 0, type=int)
     is_this_my_post = sess.query(Post).filter_by(userid=session['userid']).filter_by(postid=postid).one()
@@ -707,7 +416,7 @@ def delete_post():
     return jsonify('success')
 
 
-@app.route('/_save_object', methods=['GET'])
+@cfapp.route('/_save_object', methods=['GET'])
 def save_object():
     geom = request.args.get('jsonshp',0,type=str)
     geom = urlparse.unquote(geom)
@@ -725,7 +434,7 @@ def save_object():
         return jsonify(objid=row[0])
 
 
-@app.route('/_save_post', methods = ['POST'])
+@cfapp.route('/_save_post', methods = ['POST'])
 def save_post():
     threadid = request.form['threadid']
     replyID = request.form['replyID']
@@ -750,7 +459,7 @@ def save_post():
     return jsonify("success")
 
 
-@app.route('/_save_thread', methods=['GET'])
+@cfapp.route('/_save_thread', methods=['GET'])
 def save_thread():
     nick = request.args.get('nick', 0, type=str)
     name = request.args.get('name', 0, type=str)
@@ -770,7 +479,7 @@ def save_thread():
         return jsonify("something went wrong")
 
 
-@app.route('/_cast_vote', methods=['GET'])
+@cfapp.route('/_cast_vote', methods=['GET'])
 def cast_vote():
     post = request.args.get('post', 0, type=int)
     vote = request.args.get('vote',0, type=int)
@@ -789,4 +498,4 @@ def cast_vote():
 
 
 if __name__ == '__main__':
-    app.run()
+    cfapp.run()

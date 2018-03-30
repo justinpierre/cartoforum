@@ -23,12 +23,12 @@ padding: 25px;;
 }
 
 #twittersubmit {
-
+padding-top: 20px;
+padding-bottom: 20px;
 }
 
 #twittersignin {
-padding-top: 53px;
-width: 50px;
+
 }
 
 #loginform {
@@ -61,6 +61,13 @@ overflow: auto;
 background-image: url("/static/images/torontimg.jpg");
 top: 0px;
 background-size: cover;
+
+}
+
+#status {
+  display: none;
+  background-color: white;
+  margin: auto;
 
 }
 
@@ -332,6 +339,6 @@ display:none;
 }
 
 .recoverpassword {
-padding-left: 10px;
+float: right;
 font-size: 8px;
 }

@@ -126,7 +126,7 @@ map.on('singleclick', function(e) {
 	}
   var viewResolution = /** @type {number} */ (map.getView().getResolution());
   var url = groupobjectssrc.getGetFeatureInfoUrl( e.coordinate, viewResolution, 'EPSG:3857', {'INFO_FORMAT': 'text/html'});
-  url = "https://127.0.0.1" + url.substring(21);
+  url = "https://cartoforum.com" + url.substring(22);
   url="/_discovery_popup?url="+encodeURIComponent(url);
 
   var xmlhttp = new XMLHttpRequest();
