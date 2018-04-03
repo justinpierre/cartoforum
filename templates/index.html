@@ -35,27 +35,38 @@
             {% if session['logged_in'] %}
             <p>already logged in</p>
             {% else %}
-            <form id = "loginform" method = "POST" action = "/login">
-                <input type = "username" name = "username" placeholder = "username">
-                <input type = "password" name = "password" placeholder = "password">
-                <br>
-                <input type = "submit" class = 'bbtn btn' value = "login">
-                 <a href = "#" onclick = "$('#recoverpassword').show('fast')" class = 'recoverpassword'>Recover Password</a>
-                 <div id = "recoverpassword">
-                    <form method = "POST" action = "/_recover_password">
-                        <input type = "text" placeholder = "enter your email address" name = "email">
-                        <input type = "submit" value = "send me an update link" class = "wbtn btn">
-                    </form>
-                </div>
-            </form>
+
             <br><br>
                 <img src="https://g.twimg.com/dev/sites/default/files/images_documentation/sign-in-with-twitter-gray.png" id = "twittersubmit" onclick = '$("#twittersignin").submit()'>
             <form id = "twittersignin" action = "/twitter-oauth" method = "POST">
 
             </form>
-                <h1>Create Account</h1>
+                <a href={{ url_for('oauth_authorize', provider='google') }}>
+                <img src = "https://developers.google.com/accounts/images/sign-in-with-google.png" id = "googlesubmit">
+                </a>
+                <form id = "loginform" method = "POST" action = "/login">
+                <input type = "username" name = "username" placeholder = "username">
+                <input type = "password" name = "password" placeholder = "password">
+                <br>
+                <input type = "submit" class = 'bbtn btn' value = "login">
+                 <a href = "#" onclick = "$('#recoverpassword').show('fast')" class = 'recoverpassword'>Recover Password</a>
+
+            </form>
+            <div id = "recoverpassword">
+                    <form method = "POST" action = "/_recover_password">
+                        <input type = "text" placeholder = "enter your email address" name = "email">
+                        <input type = "submit" value = "send me an update link" class = "wbtn btn">
+                    </form>
+                </div>
+                <br>
+                <input type = "button" value = "Create Account" onClick = "$('#createAccount').show('fast')" class = "btn wbtn">
                 <form id = "createAccount" method = "POST" action = "/create_account">
+                    <input type = "button" value = "x" onclick = "$('#createAccount').hide('fast')" class = 'recoverpassword wbtn btn'>
+                    <input type = "text" name = "username" placeholder = "username" onchange = "checkUsername(this)">
+                    <img id = "passwordaccepted" src = "/static/images/minusc.png">
                     <input type = "email" name = "email" placeholder = "email address">
+                    <p class = "small">Not required, but you won't be able to reset your password without it.</p>
+                    <br>
                     <input type = "password" name = "password" placeholder = "password">
                     <input type = "submit" value = "continue" class="btn bbtn">
                 </form>

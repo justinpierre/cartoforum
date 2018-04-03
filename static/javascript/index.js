@@ -222,3 +222,16 @@ function sendInvite() {
    console.log(response)
    })
 }
+
+function checkUsername(name) {
+ $.getJSON($SCRIPT_ROOT + '/_check_username',
+ {name: name.value},
+ function(response) {
+   console.log(response);
+   if (response[name.value] == 'taken') {
+     $("#passwordaccepted").attr("src","/static/images/minusc.png");
+   }
+   if (response[name.value] == 'ok') {
+     $("#passwordaccepted").attr("src","/static/images/plusc.png");
+ }})
+}

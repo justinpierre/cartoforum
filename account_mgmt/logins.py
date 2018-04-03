@@ -1,6 +1,6 @@
 from orm_classes import sess
 from flask import session, render_template, request, jsonify
-from flask_mail import Mail, Message
+from flask_mail import Message
 
 from orm_classes import Users, PasswordReset
 import hashlib
@@ -98,3 +98,12 @@ def reset_password():
     userid = sess.query(PasswordReset).filter_by(token=token).filter_by(used='f').one().userid
     if userid > 0:
         return render_template('passwordreset.html', userid=userid)
+
+@cfapp.route('/_check_username', methods=['GET'])
+def check_username():
+    requestedname = request.args.get('name')
+    taken = sess.query(Users).filter_by(username=requestedname).count()
+    if taken > 0:
+        return jsonify({requestedname: 'taken'})
+    else:
+        return jsonify({requestedname: 'ok'})

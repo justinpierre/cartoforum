@@ -1,8 +1,7 @@
 import datetime
-from orm_classes import sess
-from flask import session, render_template, request, jsonify, url_for, flash,redirect
-from orm_classes import GroupRequests, Group, Users, UsersGroups, InviteMe, TwitterUsers
-from app import cfapp, cur, pgconnect
+from orm_classes import sess, Users, TwitterUsers
+from flask import session, render_template, request, url_for, flash,redirect
+from app import cfapp
 from flask_oauth import OAuth
 
 import config
@@ -39,7 +38,6 @@ def oauth_authorized(resp):
     )
     session['twitter_user'] = resp['screen_name']
     twitteruser = sess.query(TwitterUsers).filter_by(username=resp['screen_name']).count()
-    print(twitteruser)
 
     flash('You were signed in as %s' % resp['screen_name'])
     if twitteruser == 0:

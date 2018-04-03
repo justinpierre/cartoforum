@@ -22,17 +22,17 @@ padding: 25px;;
 -moz-border-radius: 20;
 }
 
-#twittersubmit {
+#googlesubmit, #twittersubmit {
 padding-top: 20px;
 padding-bottom: 20px;
+width: 140px;
 }
 
 #twittersignin {
-
+display: none;
 }
 
 #loginform {
-float: right;
 padding-top: 25px;
 font-size: 1px;
 }
@@ -105,6 +105,7 @@ opacity: 0.45;
 }
 
 #createAccount {
+display: none;
 }
 
 #forgotPassword {
@@ -341,4 +342,8 @@ display:none;
 .recoverpassword {
 float: right;
 font-size: 8px;
+}
+
+.small {
+font-size: 10px;
 }
