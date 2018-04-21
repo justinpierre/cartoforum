@@ -1,4 +1,6 @@
 from flask import session, render_template, request, jsonify
+from orm_classes import sess, Users, Post, Votes
+
 from app import cfapp, cur, pgconnect
 import datetime
 import urlparse
@@ -48,9 +50,17 @@ def go_to_group():
         bounds = row[1]
     # Check for group membership, return group name and bounds and username
     pgconnect.commit()
+    user = sess.query(Users).filter_by(userid=session['userid']).one()
+    username = user.username
+    basemap = user.basemap
+    color = user.color
+    # TODO: check that user is a member of group
     return render_template('map.html',
                            groupid=groupid,
                            userid=session['userid'],
+                           username=username,
+                           basemap=basemap,
+                           color=color,
                            groupname=groupname,
                            bounds=bounds
                            )
@@ -84,3 +94,24 @@ def discovery_popup():
         return "Host not allowed"
     r = requests.get(onlineresource, auth=HTTPBasicAuth(config.argoomapusername, config.argoomappassword))
     return r.text
+
+def update_object_stats(objid):
+    # get the replies for the posts
+    obj_score = 0
+    for p in sess.query(Post).filter_by(objectid=objid):
+        obj_score += 1
+        obj_score += sess.query(Post).filter_by(responseto=p.postid).count()
+        obj_score += sess.query(Votes).filter_by(postid=p.postid).count()
+    cur.execute("UPDATE mapobjects SET score = {} WHERE objectid = {}".format(obj_score, objid))
+    pgconnect.commit()
+    cur.execute("SELECT min(score), max(score) from mapobjects where groupid = {}".format(session['groupid']))
+
+
+    response = cur.fetchall()
+    for row in response:
+        # return {"max": row[1], "min": row[0], "objscore": obj_score, "num": obj_score - row[0], "denom": row[1]-row[0], "total": float(5)/6}
+        score_ind = (float(obj_score) - float(row[0]))/(float(row[1])-float(row[0]))
+        cur.execute("UPDATE mapobjects SET score_idx = {} WHERE objectid = {}".format(score_ind, objid))
+
+    pgconnect.commit()
+    return score_ind

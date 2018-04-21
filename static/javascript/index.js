@@ -25,9 +25,6 @@ function init() {
 	})
   });
   map.on('moveend', onMoveEnd);
-
-
-
 }
 
 function onMoveEnd(evt) {
@@ -57,11 +54,8 @@ function addGeojson(groupid) {
 
 function geojsonSubmit(groupid) {
    var geojsondata = JSON.parse($( "#geojson" ).val());
-
    for (var i in geojsondata.features) {
-   var vsource = new ol.source.GeoJSON(
-    /** @type {olx.source.GeoJSONOptions} */ ({
-      object: {
+   geojsonObject = {
         'type': 'FeatureCollection',
         'crs': {
           'type': 'name',
@@ -71,16 +65,21 @@ function geojsonSubmit(groupid) {
         },
         'features': JSON.parse("["+JSON.stringify(geojsondata.features[i])+"]")
        }
-  }));
 
+   var vsource = new ol.source.Vector({
+      features: (new ol.format.GeoJSON()).readFeatures(geojsonObject)
+   });
 
+  console.log(vsource);
   var format = new ol.format['WKT']();
   var data = format.writeFeatures(vsource.getFeatures());
-  var ajaxRequest = new XMLHttpRequest();
-  var querystring = "geojson="+encodeURIComponent(data)+"&groupid="+groupid;
-  ajaxRequest.open("POST", "serverops/addGeoJSON.php", true);
-  ajaxRequest.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-  ajaxRequest.send(querystring);
+  $.post($SCRIPT_ROOT + '/_add_geojson',{
+       geojson: encodeURIComponent(data)
+     },
+    function (response) {
+      console.log(response);
+    }
+  );
  }
    $( '#addgeojson' ).hide('fast');
 }
@@ -134,8 +133,8 @@ function getUserGroups() {
                 groupForm.append('<input type = "submit" class = "bbtn btn" value = "' + data.groups[i]['name'] + '">');
                 newcell.append(groupForm);
                 newrow.append(newcell);
+                var newcell = $("<td></td>");
                 if (data.groups[i]['admin'] == "true") {
-                    var newcell = $("<td></td>");
                     var adminForm = $("<form method = 'POST' action = '/admin'></form>");
                     adminForm.append('<input type = "hidden" name = "groupid" value = "'+ data.groups[i]['groupid'] + '">');
                     adminForm.append('<input type = "submit" class = "bbtn btn" value = "admin">');
@@ -143,7 +142,11 @@ function getUserGroups() {
                     newrow.append(newcell);
                 }
                 else {
-                    newrow.append('<td></td>')
+                    var newForm = $("<form method = 'POST' action = '/quit_group'></form>");
+                    newForm.append('<input type = "hidden" name = "groupid" value = "'+ data.groups[i]['groupid'] + '">');
+                    newForm.append('<input type = "submit" class = "bbtn btn" value = "leave group">');
+                    newcell.append(newForm);
+                    newrow.append(newcell);
                 }
                 $("#groups").append(newrow);
             }
@@ -209,7 +212,11 @@ function getThreads() {
  $.getJSON($SCRIPT_ROOT + '/_get_group_threads',
     {groupid: groupid},
     function(data) {
-      $("#threads").append()
+      for (var thread in data['threads']) {
+      $("#threads").append("<p>" + data['threads'][thread]['name'] + "</p>")
+      }
+
+
     }
 )
  getGroupUsers();
@@ -230,8 +237,10 @@ function checkUsername(name) {
    console.log(response);
    if (response[name.value] == 'taken') {
      $("#passwordaccepted").attr("src","/static/images/minusc.png");
+     $("#createAccountSubmit").prop('disabled',true)
    }
    if (response[name.value] == 'ok') {
      $("#passwordaccepted").attr("src","/static/images/plusc.png");
+     $("#createAccountSubmit").prop('disabled',false)
  }})
 }

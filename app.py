@@ -8,7 +8,7 @@ from flask_mail import Mail
 
 import psycopg2
 import config
-from orm_classes import Users, Group, sess
+from orm_classes import Users, Group, sess, UsersGroups
 
 
 cfapp = Flask(__name__)
@@ -36,7 +36,7 @@ except:
 
 cur = pgconnect.cursor()
 
-from account_mgmt import logins, invites, twitter, google
+from account_mgmt import logins, invites, twitter, google, account
 from group_mgmt import cf_groups
 from cf_map import forum, carto
 

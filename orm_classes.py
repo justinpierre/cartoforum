@@ -25,6 +25,8 @@ class Users(base):
     email = Column(String)
     verified = Column(Boolean)
     twitterid = Column(Integer)
+    basemap = Column(Integer)
+    color = Column(Integer)
 
 
 class PasswordReset(base):
@@ -41,10 +43,11 @@ class TwitterUsers(base):
     __tablename__ = 'twitterusers'
     id = Column(Integer,primary_key=True)
     oauth_provider = Column(String)
-    oauth_uid = Column(String)
+    oauth_uid = Column(String, ForeignKey("users.twitterid"))
     oauth_token = Column(String)
     oauth_secret = Column(String)
     username = Column(String)
+    twitterusers_users = relationship("Users", foreign_keys=[oauth_uid])
 
 
 class Post(base):
@@ -112,7 +115,7 @@ class GroupRequests(base):
     requestid = Column(Integer,primary_key=True)
     requester = Column(Integer, ForeignKey("users.userid"))
     invitee = Column(Integer)
-    groupid = Column(Integer,ForeignKey("groups.groupid"))
+    groupid = Column(Integer, ForeignKey("groups.groupid"))
     dateissued = Column(Date)
     complete = Column(Boolean)
     grouprequests_users = relationship("Users",foreign_keys=[requester])

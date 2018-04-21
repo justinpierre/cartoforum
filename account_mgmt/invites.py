@@ -40,7 +40,7 @@ def get_user_invites():
                 "WHERE accepted is null AND groups.userid = '{}'".format(session['userid']))
     response = cur.fetchall()
     for row in response:
-        invreq['requests'].append({"requestid": row[0], "requester": row[1], "group": [2], "date": row[3]})
+        invreq['invites'].append({"requestid": row[0], "requester": row[1], "group": [2], "date": row[3]})
     pgconnect.commit()
     return jsonify(invites=invreq)
 
@@ -65,13 +65,13 @@ def accept_invite():
     requestid = request.form['requestid']
     action = request.form['submit']
 
-    cur.execute("SELECT groupid FROM inviteme WHERE requestid = {};".format(requestid))
+    cur.execute("SELECT groupid,userid FROM inviteme WHERE requestid = {};".format(requestid))
     response = cur.fetchall()
     for row in response:
         if action == 'accept':
             # make sure it doesn't add twice
-            cur.execute("INSERT INTO usersgroups VALUES ({},{})".format(session['userid'], row[0]))
-        cur.execute("UPDATE inviteme set complete = true WHERE requestid = {}".format(requestid))
+            cur.execute("INSERT INTO usersgroups VALUES ({},{})".format(row[1], row[0]))
+        cur.execute("UPDATE inviteme set accepted = 't' WHERE requestid = {}".format(requestid))
         pgconnect.commit()
     return render_template('groupselect.html')
 
@@ -81,4 +81,5 @@ def request_invite():
     gid = request.form['gid']
     newinvite = InviteMe(userid=session['userid'], groupid=gid, date=datetime.datetime.utcnow())
     sess.add(newinvite)
+    sess.commit()
     return render_template("discovery.html", invite="sent")

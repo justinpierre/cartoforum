@@ -62,13 +62,13 @@
                 <input type = "button" value = "Create Account" onClick = "$('#createAccount').show('fast')" class = "btn wbtn">
                 <form id = "createAccount" method = "POST" action = "/create_account">
                     <input type = "button" value = "x" onclick = "$('#createAccount').hide('fast')" class = 'recoverpassword wbtn btn'>
-                    <input type = "text" name = "username" placeholder = "username" onchange = "checkUsername(this)">
+                    <input type = "text" name = "username" placeholder = "username" onkeyup = "checkUsername(this)">
                     <img id = "passwordaccepted" src = "/static/images/minusc.png">
                     <input type = "email" name = "email" placeholder = "email address">
                     <p class = "small">Not required, but you won't be able to reset your password without it.</p>
                     <br>
                     <input type = "password" name = "password" placeholder = "password">
-                    <input type = "submit" value = "continue" class="btn bbtn">
+                    <input type = "submit" value = "continue" class="btn bbtn" id = "createAccountSubmit" disabled>
                 </form>
                 {% endif %}
                 {% endblock %}

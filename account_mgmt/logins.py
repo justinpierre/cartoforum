@@ -26,26 +26,29 @@ def do_login():
 
 @cfapp.route('/groupselect', methods=['POST'])
 def group_select():
-    username = sess.query(Users).filter_by(userid=session['userid']).one().username
+    user = sess.query(Users).filter_by(userid=session['userid']).one()
+    username = user.username
     return render_template('groupselect.html', username=username)
 
 
 @cfapp.route('/create_account', methods=['POST'])
 def create_account():
+    username = request.form['username']
     email = request.form['email']
+    if email in ['email address', '']:
+        email = None
     password = request.form['password']
     m = hashlib.sha256()
     m.update(password.encode("utf-8"))
     hashpass = m.hexdigest()
     emailexists = sess.query(Users).filter_by(email=email).count()
-    if emailexists > 0:
-        return cfapp.index()
+    if emailexists > 0 and email is not None:
+        return render_template(email)
     else:
-        newuser = Users(email=email, password=hashpass, username=email)
+        newuser = Users(email=email, password=hashpass, username=username)
         sess.add(newuser)
         sess.commit()
-        session['userid'] = sess.query(Users).filter_by(email=email).one().userid
-        return render_template('accountsetup.html', email=email)
+        return app.index()
 
 
 @cfapp.route('/select_username', methods=['POST'])

@@ -6,6 +6,7 @@ import sqlalchemy
 import datetime
 import re
 from sqlalchemy import asc
+from . import carto
 
 @cfapp.route('/_get_group_threads', methods=['GET'])
 def get_group_threads():
@@ -50,7 +51,8 @@ def user_posts():
     vtotal = voted = None
     userid = request.args.get('userid', 0, type=str)
     posts = []
-    for p, t, u in sess.query(Post, Thread, Users).filter_by(userid=userid).join(Thread).join(Users):
+    for p, t, u in sess.query(Post, Thread, Users).filter_by(userid=userid).filter_by(groupid=session['groupid']).\
+            join(Thread).join(Users):
         qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
         for res in qry.all():
             vtotal = res
@@ -70,7 +72,7 @@ def posts_by_extent():
         cur.execute("SELECT posts.postid, posts.userid, posts.date, posts.objectid, posts.postcontent, thread.nickname,"
                     "users.username FROM posts INNER JOIN thread on thread.threadid = posts.threadid INNER JOIN "
                     "mapobjects on posts.objectid = mapobjects.objectid INNER JOIN users on users.userid = posts.userid"
-                    "WHERE posts.groupid = {} and ST_Within(mapobjects.geom,ST_MakeEnvelope({}, 3857)) "
+                    " WHERE posts.groupid = {} and ST_Within(mapobjects.geom,ST_MakeEnvelope({}, 3857)) "
                     "AND ST_AsText(geom) like '{}%' Order by date DESC;".
                     format(session['groupid'], extent, geometrytype))
         response = cur.fetchall()
@@ -136,18 +138,18 @@ def save_post():
 def cast_vote():
     post = request.args.get('post', 0, type=int)
     vote = request.args.get('vote', 0, type=int)
-    v = sess.query(Votes).filter_by(userid=session['userid']).filter_by(postid=post).count()
-    if v > 0:
+    v = sess.query(Votes).filter_by(userid=session['userid']).filter_by(postid=post)
+    if v.count() > 0:
         v = sess.query(Votes).filter_by(userid=session['userid']).filter_by(postid=post).first()
         v.vote = vote
-        sess.commit()
-        return jsonify('vote updated')
     else:
         v = Votes(postid=post, userid=session['userid'], vote=vote)
         sess.add(v)
-        sess.commit()
-        return jsonify('new vote cast')
-
+    sess.commit()
+    pid = sess.query(Votes).filter_by(userid=session['userid']).filter_by(postid=post).one().postid
+    oid = sess.query(Post).filter_by(postid=pid).one().objectid
+    score_ind = carto.update_object_stats(oid)
+    return jsonify(score_ind)
 
 @cfapp.route('/_save_thread', methods=['GET'])
 def save_thread():
@@ -171,6 +173,7 @@ def save_thread():
 
 @cfapp.route('/_get_post', methods=['GET'])
 def get_post():
+    handled_postids = []
     thread_data = {}
     clicked_post = []
     indent = 0
@@ -229,38 +232,42 @@ def get_post():
         if i in retired_threads:
             thread_data[i]['retired'] = True
         # set next_post equal to the clicked id and assume it is a response to something
-        j= clickedid[0]
-        # for j in clickedid:
-        next_post = j
-        responseto = True
-        while responseto:
-            for p in sess.query(Post).filter_by(postid=next_post):
-                if p.responseto > 0:
-                    next_post = p.responseto
-                else:
-                    responseto = False
-        vtotal = voted = None
-        # now next_post is the original post id
-        indent = 0
-        for p, t, u in sess.query(Post, Thread, Users).filter_by(postid=next_post).order_by(asc(Post.date))\
-                .join(Thread).join(Users):
-            qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
-            for res in qry.all():
-                vtotal = res
-            for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=userid):
-                voted = v.vote
-            checkdeletable = sess.query(Post).filter_by(responseto=p.postid).count()
-            deleteable = False
+        for j in clickedid:
+            next_post = j
             responseto = True
-            if checkdeletable == 0:
-                deleteable = True
-                responseto = False
-            if p.postid:
-                thread_data[i]['posts'].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname,
-                                                u.username, vtotal[0], voted, p.postid in clicked_post, deleteable,
-                                                indent])
-            # for all responses get all responses until checkresponse == 0
-            get_replies(next_post, clicked_post, indent)
+            while responseto:
+                for p in sess.query(Post).filter_by(postid=next_post):
+                    if p.responseto > 0:
+                        next_post = p.responseto
+                    else:
+                        responseto = False
+            vtotal = voted = None
+            # now next_post is the original post id
+            # make sure we don't report on the same chain twice
+            if next_post in handled_postids:
+                continue
+            handled_postids.append(next_post)
+
+            indent = 0
+            for p, t, u in sess.query(Post, Thread, Users).filter_by(postid=next_post).order_by(asc(Post.date))\
+                    .join(Thread).join(Users):
+                qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
+                for res in qry.all():
+                    vtotal = res
+                for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=userid):
+                    voted = v.vote
+                checkdeletable = sess.query(Post).filter_by(responseto=p.postid).count()
+                deleteable = False
+                responseto = True
+                if checkdeletable == 0:
+                    deleteable = True
+                    responseto = False
+                if p.postid:
+                    thread_data[i]['posts'].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname,
+                                                    u.username, vtotal[0], voted, p.postid in clicked_post, deleteable,
+                                                    indent])
+                # for all responses get all responses until checkresponse == 0
+                get_replies(next_post, clicked_post, indent)
     return jsonify(data=thread_data)
 
 

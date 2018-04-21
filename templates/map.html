@@ -24,13 +24,18 @@
 var userid = {{ userid }};
 var groupid = {{ groupid }};
 var bounds = "{{ bounds }}";
+{% if userid > 0 %}
+var basemap = {{ basemap }};
+var color = {{ color }};
+{% endif %}
 $.ajaxSetup({ cache: false });
 </script>
 </head>
 <body onload = "init()">
 <div id = "content">
 <header>
-<span style = "padding-left: 15px; float: left;">
+
+    <span style = "padding-left: 15px; float: left;">
  <select id = "filter-by-user">
  <option value = "none">Filter by user</option>
     {{ groupusers }}
@@ -43,7 +48,9 @@ $.ajaxSetup({ cache: false });
  </select>
 <input type = "button" class = "btn bbtn" value = "filter to extent" onclick = "postExtent()">
 </span>
+      {% if userid == 0 %}
 
+    {% endif %}
 <img class = "recpost" src = "{{ url_for('static', filename='/images/rec.png') }}" onclick = "recentPosts()" data-toggle="tooltip" title="Recent Posts">
 <span style = "position: fixed; right: 40px; top: 10px;">
 <input id = "searchPosts" placeholder = "Search posts" onkeyup = "searchPosts()">
@@ -90,7 +97,7 @@ $.ajaxSetup({ cache: false });
 </form>
     {% endif %}
 </span>
-<span style = "float: right;">Created by <a href = "https://twitter.com/jpierre001">Justin Pierre</a></span>
+<span style = "float: right;"><a href = 'https://cartoforum.com'><span id = "title">cartoforum</span></a> Created by <a href = "https://twitter.com/jpierre001">Justin Pierre</a></span>
 </footer>
 </div>
 

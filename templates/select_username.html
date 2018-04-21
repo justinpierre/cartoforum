@@ -18,10 +18,11 @@
 		</header>
 		<div id = "content">
 			<div id = "description">
-				<form id = "selectusername" method = "POST" action = "/select_username">
-                    Select a username, or accept your email as your username
-                    <input type = "text" name = "username" value = {{email}}>
-                    <input type = "submit" value = "Select and login">
+				<form id = "selectusername" method = "POST" action = "/_select_username_for_twitter">
+					<p class = "small">Someone took your twitter handle, just choose a different name for cartoforum.</p>
+                    <input type = "text" name = "username" value = {{alt_name}} onkeyup = "checkUsername(this)">
+                    <img id = "passwordaccepted" src = "/static/images/plusc.png">
+                    <input type = "submit" value = "Select and login" class = "btn bbtn">
                 </form>
 
 

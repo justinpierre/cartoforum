@@ -1,7 +1,9 @@
 from orm_classes import sess
 from flask import session, render_template, request, jsonify
-from orm_classes import Group, Users, UsersGroups, Post, Thread
+from orm_classes import Group, Users, UsersGroups, Post, Thread, GroupRequests, InviteMe, Votes
 from app import cfapp, cur, pgconnect
+import datetime
+import urlparse
 
 
 @cfapp.route('/_get_user_groups', methods=['GET'])
@@ -51,4 +53,33 @@ def delete_group():
     sess.query(Post).filter_by(groupid=session['groupid']).delete()
     sess.query(Thread).filter_by(groupid=session['groupid']).delete()
     sess.query(Group).filter_by(groupid=session['groupid']).delete()
-    return render_template('groupselect.html')
+    username = sess.query(Users).filter_by(userid=session['userid']).one().username
+    return render_template('groupselect.html', username=username)
+
+@cfapp.route('/_add_geojson', methods=['POST'])
+def add_geojson():
+    json = urlparse.unquote(request.form['geojson'])
+
+    group_admin = sess.query(Group).filter_by(groupid=session['groupid']).one().userid
+    if session['userid'] != group_admin:
+        return jsonify("not allowed")
+    cur.execute("INSERT INTO mapobjects (geom, groupid, userid, date) VALUES "
+                "(ST_Transform(ST_GeomFromText('{}',4326),3857), {}, {}, '{}');".format(json, session['groupid'], session['userid'], datetime.datetime.utcnow()))
+    pgconnect.commit()
+    return jsonify('success')
+
+@cfapp.route('/quit_group', methods=['POST'])
+def quit_group():
+    groupid = request.form['groupid']
+    uid = sess.query(UsersGroups).filter_by(groupid=groupid).filter_by(userid=session['userid']).count()
+    if uid > 0:
+        sess.query(Votes).filter_by(groupid=groupid).filter_by(userid=session['userid']).delete()
+        sess.query(Post).filter_by(groupid=groupid).filter_by(userid=session['userid']).delete()
+        cur.execute("DELETE FROM mapobjects Where userid = {} and groupid = {}".format(session['userid'],groupid))
+        pgconnect.commit()
+        sess.query(UsersGroups).filter_by(groupid=groupid).filter_by(userid=session['userid']).delete()
+        sess.query(GroupRequests).filter_by(groupid=groupid).filter_by(invitee=session['userid']).delete()
+        sess.query(InviteMe).filter_by(groupid=groupid).filter_by(userid=session['userid']).delete()
+        sess.commit()
+    username = sess.query(Users).filter_by(userid=session['userid']).one().username
+    return render_template('groupselect.html', username=username)

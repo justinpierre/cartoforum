@@ -127,6 +127,7 @@ map.on('singleclick', function(e) {
   var viewResolution = /** @type {number} */ (map.getView().getResolution());
   var url = groupobjectssrc.getGetFeatureInfoUrl( e.coordinate, viewResolution, 'EPSG:3857', {'INFO_FORMAT': 'text/html'});
   url = "https://cartoforum.com" + url.substring(22);
+  url+="&FEATURE_COUNT=15";
   url="/_discovery_popup?url="+encodeURIComponent(url);
 
   var xmlhttp = new XMLHttpRequest();
@@ -141,11 +142,9 @@ map.on('singleclick', function(e) {
 	       selectExisting = x[1].innerHTML;
 	       }
 	      else {
-	      $( "#objid" ).html(x[1].innerHTML);
-
-}
+	         $( "#objid" ).html(x[1].innerHTML);
+            }
               highlightObject(null, x[1].innerHTML);
-
 	     }
 	   }
         }
@@ -160,14 +159,18 @@ $('#layer-select').change(function() {
 	aerial.setVisible(0);
 	base.setVisible(0);
 	dark.setVisible(0);
-	base.setVisible(0);
+	light.setVisible(0);
 if (style == 0) light.setVisible(1);
 if (style == 1) dark.setVisible(1);
 if (style == 2) aerial.setVisible(1);
 if (style == 3) base.setVisible(1);
-});
+$.getJSON($SCRIPT_ROOT + '/_update_basemap_pref',{
+       basemap: style
+     });
+ });
 $('#layer-select').trigger('change');
-
+$("#layer-select").prop('selectedIndex', basemap);
+$("#selectedStyle").prop('selectedIndex', color);
 
 getGroupThreads()
 
@@ -242,6 +245,9 @@ function styleChange(color) {
   groupobjectssrc.updateParams({STYLES: color});
   if (threadsrc) threadsrc.updateParams({STYLES: color});
   $( 'div#style-select-options' ).hide('fast');
+  $.getJSON($SCRIPT_ROOT + '/_update_color_pref',{
+       color: color
+     });
 }
 
 function addInteraction() {
