@@ -33,9 +33,10 @@ def get_thread_posts():
 def recent_posts():
     userid = session['userid'] if 'userid' in session else 0
     posts = []
-    voted = vtotal = None
+
     for p, t, u in sess.query(Post, Thread, Users).order_by(Post.date.desc()).join(Thread).\
             filter_by(groupid=session['groupid']).join(Users):
+        voted = vtotal = None
         qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
         for res in qry.all():
             vtotal = res

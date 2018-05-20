@@ -14,7 +14,7 @@ postHTML += '<option value="Select From Map">Select From Map</option>';
 postHTML += '<option value="Edit">Edit</option>';
 postHTML += '</select>';
 postHTML += '<input type = "button" value = "save" class = "bbtn" onclick = "saveObject()">';
-
+postHTML += '<input type = "hidden" id = "postToThreadID">';
 
 var style = new ol.style.Style({
     fill: new ol.style.Fill({
@@ -86,7 +86,7 @@ groupobjectssrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */
 url: 'https://cartoforum.com:8443/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:groupobjects', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid},
 		serverType: 'geoserver'
-	     }));if (style == 1) dark.setVisible(1);
+	     }));
 
   groupobjects = new ol.layer.Tile({source: groupobjectssrc, visible: true});
 
@@ -95,19 +95,22 @@ vector = new ol.layer.Vector({
   source: vsource
 });
 
-/*
+
 vector.on('change', function(e) {
   var format = new ol.format['WKT']();
   var data = format.writeFeatures(vector.getSource().getFeatures());
-  $( "#geoCollection" ).html(data);
-})
-*/
+  console.log(data);
+});
+
 map = new ol.Map({
 	layers: [light,dark,base, aerial, groupobjects, vector],
 	renderer: 'canvas',
 	target: 'map',
 	view: new ol.View({
-		center: [-10000000,6500000],
+		center: [0,0],
+		projection: 'EPSG:3857',
+		extent: [-20026376.39, -20048966.10, 20026376.39, 20048966.10],
+        units: 'm',
 		zoom: 5
 	})
 });
@@ -168,9 +171,11 @@ $.getJSON($SCRIPT_ROOT + '/_update_basemap_pref',{
        basemap: style
      });
  });
-$('#layer-select').trigger('change');
+
 $("#layer-select").prop('selectedIndex', basemap);
-$("#selectedStyle").prop('selectedIndex', color);
+$('#layer-select').trigger('change');
+var colorlookup = {0: 'green', 1: 'red', 2: 'purple', 3: 'blue', 4: 'orange'}
+styleChange(colorlookup[color]);
 
 getGroupThreads()
 
@@ -253,7 +258,6 @@ function styleChange(color) {
 function addInteraction() {
   digitizing = true;
   var value = typeSelect.options[typeSelect.selectedIndex].value;
-  console.log(value);
   draw = new ol.interaction.Draw({
       source: vsource,
       type: /** @type {ol.geom.GeometryType} */ (value)
@@ -293,7 +297,33 @@ function createPost(post){
     if (post[3]) newpost += "<input type = 'button' class = 'btn findbtn' value = '&#x1f50d;' onclick = 'zoomTo(" + post[3] + ")'>";
     newpost += "</span></p>"
     newpost += "User " + post[6] + "<span style = 'float: right; font-size: 8px;'>\n Date " + post[2] + "</span></div>";
-    newpost += "<div class = 'postText'>" + post[4] + "</div></div>";
+    var content = anchorme(post[4],{
+	  attributes:[
+		function(urlObj){
+			if(urlObj.protocol !== "mailto:") return {name:"target",value:"blank"};
+		}
+	  ]
+    });
+    if (content.includes('<a href="')) {
+        var target = content.substring(content.indexOf('<a href="')+9,content.indexOf('>')-2);
+        $.ajax({
+          url: "https://api.linkpreview.net",
+          type: 'GET',
+          async: false,
+          dataType: 'jsonp',
+          data: {q: target, key: '5adb7c702abd3ef92ec48a92ac86384c1c08a8651fb72'},
+          success: function (response) {
+            console.log(response);
+            if (response['error'] != 424) {
+              $("#" + post[0]).append("<img class = 'imgpreview' src = '" + response['image'] + "'>");
+              $("#" + post[0]).append("<p class = 'imgtitle'>" + response['title'] + "</p>");
+              }
+            }
+        });
+    }
+
+    newpost += "<div class = 'postText'>" + content;
+    newpost += "</div></div>";
     newpost += "<div class = 'replyToPostContainer' style = 'margin-left: " + indent + "'>";
     if (post[8] == 0 || !post[8]) {
       newpost += "<a href = '#' onclick = 'updateVote(" + post[1] + "," + post[0] + ",-1)'><img class = 'votebtns' src='/static/images/minus.png'></a><span class = 'vtotal'>";
@@ -312,10 +342,7 @@ function createPost(post){
 
     newpost += "</div>";
      newpost += "<div class = 'replyArea' id = 'reply-to-post" + post[0] + "' style = 'margin-left: " + indent + "'></div>";
-
-
-
-    return newpost
+ return newpost
 }
 
 function recentPosts() {
@@ -556,8 +583,8 @@ $( "#addtothread"+threadid).on({
 });
   $( "#addtothread"+threadid).attr("onclick","stopDigitizing("+threadid+")");
   $( "#filter-by-thread").val(threadid);
-  postHTML += '<input type = "hidden" id = "postToThreadID" value = "' +threadid+ '" >';
   $( "#postToThread"+threadid ).html(postHTML);
+  $("#postToThreadID").val(threadid);
   $( "#postToThread"+threadid ).show("fast");
   var format = new ol.format['WKT']();
   var data = format.writeFeatures(vector.getSource().getFeatures());

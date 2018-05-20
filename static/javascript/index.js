@@ -21,6 +21,9 @@ function init() {
 	target: 'map',
 	view: new ol.View({
 		center: [0,0],
+		projection: 'EPSG:3857',
+		extent: [-20026376.39, -20048966.10, 20026376.39, 20048966.10],
+        units: 'm',
 		zoom: 1
 	})
   });
@@ -181,8 +184,8 @@ function getUserInvites() {
             var inviteForm = $("<form method = 'POST' action = '/manageRequest'></form>")
             inviteForm.append(data.invites['requests'][i]['requester'] + " has invited you to the group " + data.invites['requests'][i]['group']);
             inviteForm.append('<input type = "hidden" name = "requestid" value = "' + data.invites['requests'][i]['requestid'] + '" />');
-            inviteForm.append('<input type = "submit" name = "submit" value = "accept" class= "btn bbtn"/>');
-            inviteForm.append('<input type = "submit" name = "submit" value = "reject" class= "btn wbtn"/>');
+            inviteForm.append(' <input type = "submit" name = "submit" value = "accept" class= "btn bbtn"/>');
+            inviteForm.append(' <input type = "submit" name = "submit" value = "reject" class= "btn wbtn"/>');
             $("#invites").append(inviteForm);
         }
     })
@@ -226,7 +229,8 @@ function sendInvite() {
  $.getJSON($SCRIPT_ROOT + '/invite_user',
  {invitee: $("#invitee").val()},
  function(response) {
-   console.log(response)
+    $("#status").html('Invite Sent');
+    $("#status").show("slow").delay(800).hide("slow");
    })
 }
 

@@ -48,7 +48,7 @@ def create_account():
         newuser = Users(email=email, password=hashpass, username=username)
         sess.add(newuser)
         sess.commit()
-        return app.index()
+        return render_template('index.html', account='created')
 
 
 @cfapp.route('/select_username', methods=['POST'])

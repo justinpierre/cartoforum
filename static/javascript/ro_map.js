@@ -279,6 +279,30 @@ function createPost(post){
     if (post[3]) newpost += "<input type = 'button' class = 'btn findbtn' value = '&#x1f50d;' onclick = 'zoomTo(" + post[3] + ")'>";
     newpost += "</span></p>"
     newpost += "User " + post[6] + "<span style = 'float: right; font-size: 8px;'>\n Date " + post[2] + "</span></div>";
+    var content = anchorme(post[4],{
+	  attributes:[
+		function(urlObj){
+			if(urlObj.protocol !== "mailto:") return {name:"target",value:"blank"};
+		}
+	  ]
+    });
+    if (content.includes('<a href="')) {
+        var target = content.substring(content.indexOf('<a href="')+9,content.indexOf('>')-2);
+        $.ajax({
+          url: "https://api.linkpreview.net",
+          type: 'GET',
+          async: false,
+          dataType: 'jsonp',
+          data: {q: target, key: '5adb7c702abd3ef92ec48a92ac86384c1c08a8651fb72'},
+          success: function (response) {
+            console.log(response);
+            if (response['error'] != 424) {
+              $("#" + post[0]).append("<img class = 'imgpreview' src = '" + response['image'] + "'>");
+              $("#" + post[0]).append("<p class = 'imgtitle'>" + response['title'] + "</p>");
+              }
+            }
+        });
+    }
     newpost += "<div class = 'postText'>" + post[4] + "</div></div>";
     newpost += "<div class = 'replyToPostContainer' style = 'margin-left: " + indent + "'>";
 

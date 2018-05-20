@@ -29,11 +29,14 @@ var groupid = {{ groupid }};
 </script>
 </head>
 <body onload = "getThreads(groupid)">
+
+
 <header id = "loginbar">
 <h1 id = "title">cartoforum</h1>
 </header>
 <div id = "content">
-<div id = "addgeojson"></div>
+<div id = "status"></div>
+    <div id = "addgeojson"></div>
 <div id = "description">
 <br>
 <form action = "/groupselect" method = "POST">
@@ -86,9 +89,9 @@ Invite users by email:<br>
 </div>
 <footer>
 <span style = "padding-left: 80px;">{{ username }}
-<form class = "inlineform" action = "logout.php" method = "POST">
-<input type = "submit" class = "btn bbtn" value = "logout" />
-</form>
+<form class = "inlineform" action = "/logout" method = "POST">
+		<input type = "submit" class = "btn bbtn" value = "Logout" />
+		</form>
 <span style = "float: right; padding-top: 4px;">Created by <a href = "https://twitter.com/jpierre001">Justin Pierre</a></span>
 </footer>
 

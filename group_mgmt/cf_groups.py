@@ -33,6 +33,12 @@ def create_group():
     opengroup = 'false'
     if request.args.get('opengroup') == 'on':
         opengroup = 'true'
+    cur.execute("SELECT count(*) from groups where groupname = '{}' and userid = {} and bounds = '{}'"
+                .format(groupname, session['userid'], bounds))
+    response = cur.fetchall()
+    for row in response:
+        if row[0] > 0:
+            return jsonify("group already exists")
     cur.execute("INSERT INTO groups (geom, groupname, userid, bounds,opengroup) "
                 "VALUES (ST_Centroid(ST_GeomFromText('MULTIPOINT ({} {},{} {})')), '{}', {}, '{}', {})".
                 format(bounds_arr[0], bounds_arr[1], bounds_arr[2], bounds_arr[3], groupname, session['userid'],
@@ -73,7 +79,7 @@ def quit_group():
     groupid = request.form['groupid']
     uid = sess.query(UsersGroups).filter_by(groupid=groupid).filter_by(userid=session['userid']).count()
     if uid > 0:
-        sess.query(Votes).filter_by(groupid=groupid).filter_by(userid=session['userid']).delete()
+        cur.execute("DELETE FROM Votes where userid = {} and postid in (Select postid from posts where groupid = {})".format(session['userid'], groupid))
         sess.query(Post).filter_by(groupid=groupid).filter_by(userid=session['userid']).delete()
         cur.execute("DELETE FROM mapobjects Where userid = {} and groupid = {}".format(session['userid'],groupid))
         pgconnect.commit()
