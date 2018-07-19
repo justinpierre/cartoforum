@@ -39,10 +39,13 @@ def zoom_to():
     return jsonify(bounds=bbox)
 
 
-@cfapp.route('/map', methods=['POST'])
+@cfapp.route('/map', methods=['POST','GET'])
 def go_to_group():
-    groupid = request.form['groupid']
-    session['groupid'] = request.form['groupid']
+    try:
+        groupid = request.form['groupid']
+        session['groupid'] = request.form['groupid']
+    except:
+        groupid = session['groupid']
     cur.execute("SELECT groupname,bounds from groups where groupid = {}".format(groupid))
     response = cur.fetchall()
     for row in response:
@@ -52,8 +55,8 @@ def go_to_group():
     pgconnect.commit()
     user = sess.query(Users).filter_by(userid=session['userid']).one()
     username = user.username
-    basemap = user.basemap
-    color = user.color
+    basemap = user.basemap or 0
+    color = user.color or 0
     # TODO: check that user is a member of group
     return render_template('map.html',
                            groupid=groupid,
@@ -73,13 +76,27 @@ def go_to_disc():
 
 @cfapp.route('/viewmap', methods=['GET'])
 def readonly_view():
+    # detect if someone is logged in. if the group is open, pass that info to the interface
+    # prompt the user. you can join this group
     session['groupid'] = groupid = request.args.get('group', 0, type=str)
-    cur.execute("SELECT groupname,bounds from groups where groupid = {}".format(groupid))
+    cur.execute("SELECT groupname,bounds,opengroup from groups where groupid = {}".format(groupid))
     response = cur.fetchall()
     for row in response:
         groupname = row[0]
         bounds = row[1]
-    return render_template('map.html', groupid=groupid, groupname=groupname, bounds=bounds, userid=0)
+        opengroup = row[2]
+    if 'userid' in session and session['userid']:
+        userid = session['userid']
+    else:
+        userid = 0
+    return render_template('map.html',
+                           groupid=groupid,
+                           groupname=groupname,
+                           bounds=bounds,
+                           userid=userid,
+                           open=opengroup,
+                           basemap=0,
+                           color=0)
 
 
 @cfapp.route('/_discovery_popup')

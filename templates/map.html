@@ -22,6 +22,7 @@
     {% endif %}
 
 <script type = "text/javascript">
+
 var userid = {{ userid }};
 var groupid = {{ groupid }};
 var bounds = "{{ bounds }}";
@@ -72,7 +73,18 @@ $.ajaxSetup({ cache: false });
 </span>
 
 </header>
-
+ {% if open %}
+   <div id = "openGroupLogin">
+       <p onclick = '$("#openGroupLogin").toggle()'>x</p>
+        <img src="https://g.twimg.com/dev/sites/default/files/images_documentation/sign-in-with-twitter-gray.png" id = "twittersubmit" onclick = '$("#twittersignin").submit()'>
+            <form id = "twittersignin" action = "/twitter-oauth" method = "POST">
+            <input type = "hidden" name = "gid" value = " {{ groupid }}">
+            </form>
+                <a href={{ url_for('oauth_authorize', provider='google') }}>
+                <img src = "https://developers.google.com/accounts/images/sign-in-with-google.png" id = "googlesubmit">
+                </a>
+   </div>
+ {% endif %}
 <div id = "map">
 <div id = "popup" class = "ol-popup">
 	<a href="#" id="popup-closer" class="ol-popup-closer"></a>
@@ -92,6 +104,9 @@ $.ajaxSetup({ cache: false });
 </form>
     {% endif %}
 <span style = "padding-left: 10px">{{ groupname }}</span>
+    {% if open %}
+    <input class = 'wbtn btn' type = "button" value = "Join Group" onClick = '$("#openGroupLogin").toggle()'>
+    {% endif %}
 {% if userid > 0 %}
      <form class = "inlineform" action = "/groupselect" method = "POST">
 <input type = "submit" class = "btn bbtn" value = "group select" />

@@ -39,6 +39,22 @@ max-height: calc(100% - 70px);
 /*bottom: 30px;*/
 }
 
+#openGroupLogin {
+position: relative;
+background-color: white
+width: 408px;
+margin: auto;
+top: 40px;
+height: 300px;
+z-index: 1000;
+}
+
+#googlesubmit, #twittersubmit {
+padding-top: 20px;
+padding-bottom: 20px;
+width: 140px;
+}
+
 footer {
   position: absolute;
   bottom: 0px;

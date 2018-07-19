@@ -1,15 +1,20 @@
 import config
 from flask import redirect, url_for, session, request, flash, render_template
 from app import cfapp
-from orm_classes import sess, Users, TwitterUsers
+from cf_map import carto
+from orm_classes import sess, Users, TwitterUsers, Group, UsersGroups
 import json
 import urllib2
 from rauth import OAuth2Service
+import logging
+
+logging.basicConfig(filename='/var/www/cartoforum/cf.log', level=logging.DEBUG)
+
 
 GOOGLE_LOGIN_CLIENT_ID = config.gid
 GOOGLE_LOGIN_CLIENT_SECRET = config.gsecret
 
-OAUTH_CREDENTIALS={
+OAUTH_CREDENTIALS = {
         'google': {
             'id': GOOGLE_LOGIN_CLIENT_ID,
             'secret': GOOGLE_LOGIN_CLIENT_SECRET
@@ -121,5 +126,13 @@ def oauth_callback():
     tulogged = sess.query(Users).filter_by(username='{}'.format(nickname)).one()
     session['userid'] = tulogged.userid
     session['logged_in'] = True
-
+    # check if there's a session groupid, if so they probably came from a viewmap.
+    # add them to the group and send them there if it's open
+    if session['groupid']:
+        opengroup = sess.query(Group).filter_by(groupid=session['groupid']).one().opengroup
+        if opengroup:
+            adduser_group = UsersGroups(userid=session['userid'], groupid=session['groupid'])
+            sess.add(adduser_group)
+            sess.commit
+            return redirect(url_for('go_to_group'))
     return render_template('groupselect.html', username=nickname)
