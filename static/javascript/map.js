@@ -369,11 +369,20 @@ function getGroupThreads() {
   $( '#createThread' ).html( '' );
   $.getJSON($SCRIPT_ROOT + '/_get_group_threads',
   function (response) {
+  thread_ids_counted = [];
+  $("#filter-by-thread option").each(function () {
+    thread_ids_counted.push(this.value)});
+  console.log(thread_ids_counted);
+
   for (var i in response.threads) {
-      $('#filter-by-thread').append($('<option/>', {
-      value: response.threads[i]['threadid'],
-      text: response.threads[i]['name']
-      }));
+      if (thread_ids_counted.includes(response.threads[i]['threadid'].toString())) continue;
+      else {
+              if (response.threads[i]['threadid'] ) {
+              $('#filter-by-thread').append($('<option/>', {
+                value: response.threads[i]['threadid'],
+                text: response.threads[i]['name']
+              }))}
+      };
   }})
 }
 

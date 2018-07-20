@@ -19,13 +19,20 @@ def get_group_threads():
 
 @cfapp.route('/_get_thread_posts', methods=['GET'])
 def get_thread_posts():
+    userid = session['userid'] if 'userid' in session else 0
     threads = []
     threadid = request.args.get('threadid', 0, type=str)
     for t in sess.query(Thread).filter_by(threadid=threadid):
         threads.append({"threadid": t.threadid, "name": t.nickname, "retired": t.retired, "posts": []})
-        for p, t, u in sess.query(Post, Thread, Users).filter_by(threadid=threadid).join(Thread).join(Users):
-            threads[len(threads)-1]["posts"].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname,
-                                                     u.username])
+        for p, th, u in sess.query(Post, Thread, Users).filter_by(threadid=threadid).join(Thread).join(Users):
+            voted = vtotal = None
+            qry = sess.query(sqlalchemy.sql.func.sum(Votes.vote)).filter_by(postid=p.postid)
+            for res in qry.all():
+                vtotal = res
+            for v in sess.query(Votes).filter_by(postid=p.postid).filter_by(userid=userid):
+                voted = v.vote
+            threads[len(threads)-1]["posts"].append([p.postid, p.userid, p.date, p.objectid, p.postcontent, t.nickname, u.username, vtotal[0] or 0,
+                                                     voted or 0])
     return jsonify(threads=threads)
 
 
@@ -160,11 +167,11 @@ def save_thread():
     if not ug:
         return jsonify("user not permitted to do this")
 
-    t_exists = sess.query(Thread).filter_by(nickname=nick).filter_by(groupid=session['groupid'])
-    if not t_exists:
+    t_exists = sess.query(Thread).filter_by(nickname=nick).filter_by(groupid=session['groupid']).count()
+    if t_exists == 1:
         return jsonify("group already exists")
     try:
-        insert_thread = Thread(nickname=nick, name=name, groupid=session['groupid'])
+        insert_thread = Thread(nickname=nick, groupid=session['groupid'])
         sess.add(insert_thread)
         sess.commit()
         return jsonify("success")

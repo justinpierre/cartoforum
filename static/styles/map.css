@@ -41,12 +41,14 @@ max-height: calc(100% - 70px);
 
 #openGroupLogin {
 position: relative;
-background-color: white
-width: 408px;
+background-color: white;
+
+width: 140px;
 margin: auto;
 top: 40px;
-height: 300px;
+height: 160px;
 z-index: 1000;
+border: 2px solid black;
 }
 
 #googlesubmit, #twittersubmit {
