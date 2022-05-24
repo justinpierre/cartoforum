@@ -12,7 +12,7 @@ psql -U cfadmin -d cartoforum -c "CREATE TABLE users (userid INT GENERATED ALWAY
     password VARCHAR(255),  \
     email VARCHAR(255),  \
     verified BOOLEAN,  \
-    twitterid VARCHAR(255), \
+    twitterid VARCHAR(255) UNIQUE, \
     basemap INT,  \
     color INT, \
     PRIMARY KEY(userid) \
@@ -106,22 +106,9 @@ psql -U cfadmin -d cartoforum -c "CREATE TABLE votes ( \
             REFERENCES posts(postid) \
 );"
 
-psql -U cfadmin -d cartoforum -c "CREATE TABLE inviteme (  \
-    requestid INT, \ 
-    userid INT,
-    groupid INT,
-    date TIMESTAMP, \
-    accepted BOOLEAN, \
-    PRIMARY KEY(requestid), \
-    CONSTRAINT fk_users \
-        FOREIGN KEY(userid) \
-            REFERENCES users(userid), \
-    CONSTRAINT fk_groups \
-        FOREIGN KEY(groupid) \
-            REFERENCES groups(groupid) \
-);"
+psql -U cfadmin -d cartoforum -c "CREATE TABLE inviteme ( requestid INT, userid INT, groupid INT, date TIMESTAMP, accepted BOOLEAN, PRIMARY KEY(requestid), CONSTRAINT fk_users FOREIGN KEY(userid) REFERENCES users(userid), CONSTRAINT fk_groups FOREIGN KEY(groupid) REFERENCES groups(groupid) );"
 
-psql -U cfadmin -d cartoforum -c "CREATE TABLE grouprequests (  \
+psql -U cfadmin -d cartoforum -c "CREATE TABLE grouprequests ( \
     requestid INT, \
     requester INT, \
     invitee INT, 
