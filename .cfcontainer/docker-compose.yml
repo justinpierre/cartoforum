@@ -1,0 +1,29 @@
+networks:
+  default:
+    name: cf.net
+    driver: bridge
+      
+
+services:
+  db:
+    container_name: cf_db
+    hostname: pg.cf.net
+    build: 
+      context: .
+      dockerfile: ./postgres.Dockerfile
+    ports: 
+    - "5432:5432"
+    environment: 
+      POSTGRES_PASSWORD: blarg123!
+      TZ: Canada/Eastern 
+
+  py:
+    container_name: cf_py
+    build:
+      context: .
+      dockerfile: ./python.Dockerfile
+    depends_on:
+      - cf_db
+    volumes: 
+    - "../:/cf"
+    
