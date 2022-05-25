@@ -1,12 +1,15 @@
-from orm_classes import sess
+import os
+import sys
+sys.path.append(os.getenv('cf'))
+
+from src.orm_classes import sess
 from flask import session, render_template, request, jsonify
-from orm_classes import Group, Users, UsersGroups, Post, Thread, GroupRequests, InviteMe, Votes
-from app import cfapp, cur, pgconnect
+from src.orm_classes import Group, Users, UsersGroups, Post, Thread, GroupRequests, InviteMe, Votes
+from src.core import pgconnect, cur
 import datetime
-import urlparse
 
 
-@cfapp.route('/_get_user_groups', methods=['GET'])
+# @cfapp.route('/_get_user_groups', methods=['GET'])
 def get_user_groups():
     groups = []
     for g, u in sess.query(Group, UsersGroups).join(UsersGroups).filter_by(userid=session['userid']):
@@ -17,7 +20,7 @@ def get_user_groups():
     return jsonify(groups=groups)
 
 
-@cfapp.route('/_get_group_users', methods=['GET'])
+# @cfapp.route('/_get_group_users', methods=['GET'])
 def get_group_users():
     users = []
     for u, ug in sess.query(Users, UsersGroups).join(UsersGroups).filter_by(groupid=session['groupid']):
@@ -25,34 +28,28 @@ def get_group_users():
     return jsonify(users=users)
 
 
-@cfapp.route('/createGroup', methods=['GET'])
-def create_group():
-    groupname = request.args.get('groupname')
-    bounds = request.args.get('bounds')
-    bounds_arr = request.args.get('bounds').split(" ")
-    opengroup = 'false'
-    if request.args.get('opengroup') == 'on':
-        opengroup = 'true'
+def create_group(**kwargs):
+    bounds_arr = kwargs['bounds'].split(" ")
     cur.execute("SELECT count(*) from groups where groupname = '{}' and userid = {} and bounds = '{}'"
-                .format(groupname, session['userid'], bounds))
+                .format(kwargs['groupname'], kwargs['userid'], kwargs['bounds']))
     response = cur.fetchall()
     for row in response:
         if row[0] > 0:
             return jsonify("group already exists")
     cur.execute("INSERT INTO groups (geom, groupname, userid, bounds,opengroup) "
-                "VALUES (ST_Centroid(ST_GeomFromText('MULTIPOINT ({} {},{} {})')), '{}', {}, '{}', {})".
-                format(bounds_arr[0], bounds_arr[1], bounds_arr[2], bounds_arr[3], groupname, session['userid'],
-                       bounds, opengroup))
-    cur.execute("SELECT groupid FROM groups WHERE groupname = '{}'".format(groupname))
+                "VALUES (ST_Centroid(ST_GeomFromText('SRID=3857;MULTIPOINT ({} {},{} {})')), '{}', {}, '{}', {})".
+                format(bounds_arr[0], bounds_arr[1], bounds_arr[2], bounds_arr[3], kwargs['groupname'], kwargs['userid'],
+                       kwargs['bounds'], kwargs['opengroup']))
+    cur.execute("SELECT groupid FROM groups WHERE groupname = '{}'".format(kwargs['groupname']))
     response = cur.fetchall()
     for row in response:
         groupid = row[0]
-    cur.execute("INSERT INTO usersgroups VALUES ({},{})".format(session['userid'], groupid))
+    cur.execute("INSERT INTO usersgroups VALUES ({},{})".format(kwargs['userid'], groupid))
     pgconnect.commit()
-    return jsonify(groupid=groupid)
+    return groupid
 
 
-@cfapp.route('/delete_group', methods=['POST'])
+# @cfapp.route('/delete_group', methods=['POST'])
 def delete_group():
     cur.execute("Delete from mapobjects where groupid = {}".format(session['groupid']))
     pgconnect.commit()
@@ -62,7 +59,7 @@ def delete_group():
     username = sess.query(Users).filter_by(userid=session['userid']).one().username
     return render_template('groupselect.html', username=username)
 
-@cfapp.route('/_add_geojson', methods=['POST'])
+# @cfapp.route('/_add_geojson', methods=['POST'])
 def add_geojson():
     json = urlparse.unquote(request.form['geojson'])
 
@@ -74,7 +71,7 @@ def add_geojson():
     pgconnect.commit()
     return jsonify('success')
 
-@cfapp.route('/quit_group', methods=['POST'])
+# @cfapp.route('/quit_group', methods=['POST'])
 def quit_group():
     groupid = request.form['groupid']
     uid = sess.query(UsersGroups).filter_by(groupid=groupid).filter_by(userid=session['userid']).count()

@@ -6,8 +6,8 @@ psql -U postgres -c "CREATE ROLE cfadmin LOGIN ENCRYPTED PASSWORD 'cart0f0ru3' S
 
 psql -U postgres -c "CREATE DATABASE cartoforum WITH ENCODING=UTF8 OWNER=cfadmin;"
 psql -U cfadmin -d cartoforum -c "CREATE SCHEMA cfadmin AUTHORIZATION cfadmin;GRANT USAGE ON SCHEMA cfadmin TO cfadmin;"
-
-psql -U cfadmin -d cartoforum -c "CREATE TABLE users (userid INT GENERATED ALWAYS AS IDENTITY,  \
+psql -U cfadmin -d cartoforum -c "CREATE EXTENSION postgis;"
+psql -U cfadmin -d cartoforum -c "CREATE TABLE users (userid SERIAL,  \
     username VARCHAR(255),  \
     password VARCHAR(255),  \
     email VARCHAR(255),  \
@@ -19,7 +19,9 @@ psql -U cfadmin -d cartoforum -c "CREATE TABLE users (userid INT GENERATED ALWAY
 );"
 
 psql -U cfadmin -d cartoforum -c "CREATE TABLE groups ( \
-    groupid INT GENERATED ALWAYS AS IDENTITY, \
+    gid SERIAL, \
+    geom geometry(POINT, 3857), \
+    groupid SERIAL , \
     groupname VARCHAR(255), \
     userid INT, \
     bounds VARCHAR(255), \
@@ -28,7 +30,7 @@ psql -U cfadmin -d cartoforum -c "CREATE TABLE groups ( \
 );"
 
 psql -U cfadmin -d cartoforum -c "CREATE TABLE thread ( \
-    threadid INT GENERATED ALWAYS AS IDENTITY, \
+    threadid SERIAL, \
     nickname VARCHAR(255), \
     name VARCHAR(255), \
     groupid INT, \
@@ -41,7 +43,7 @@ psql -U cfadmin -d cartoforum -c "CREATE TABLE thread ( \
 );"
 
 psql -U cfadmin -d cartoforum -c "CREATE TABLE posts ( \
-    postid INT GENERATED ALWAYS AS IDENTITY,  \
+    postid SERIAL,  \
     userid INT, \
     groupid INT, \
     objectid INT, \
@@ -59,7 +61,7 @@ psql -U cfadmin -d cartoforum -c "CREATE TABLE posts ( \
 );"
 
 psql -U cfadmin -d cartoforum -c "CREATE TABLE passwordreset ( \
-    requestid INT, \
+    requestid SERIAL, \
     userid INT, \
     date TIMESTAMP, \
     token VARCHAR(255), \
@@ -71,7 +73,7 @@ psql -U cfadmin -d cartoforum -c "CREATE TABLE passwordreset ( \
 );"
 
 psql -U cfadmin -d cartoforum -c "CREATE TABLE twitterusers ( \
-    id INT, \
+    id SERIAL, \
     oauth_provider VARCHAR(50), \
     oauth_uid VARCHAR(255), \
     oauth_token VARCHAR(255), \
@@ -109,7 +111,7 @@ psql -U cfadmin -d cartoforum -c "CREATE TABLE votes ( \
 psql -U cfadmin -d cartoforum -c "CREATE TABLE inviteme ( requestid INT, userid INT, groupid INT, date TIMESTAMP, accepted BOOLEAN, PRIMARY KEY(requestid), CONSTRAINT fk_users FOREIGN KEY(userid) REFERENCES users(userid), CONSTRAINT fk_groups FOREIGN KEY(groupid) REFERENCES groups(groupid) );"
 
 psql -U cfadmin -d cartoforum -c "CREATE TABLE grouprequests ( \
-    requestid INT, \
+    requestid SERIAL, \
     requester INT, \
     invitee INT, 
     groupid INT, \
@@ -118,6 +120,20 @@ psql -U cfadmin -d cartoforum -c "CREATE TABLE grouprequests ( \
     PRIMARY KEY(requestid), \
     CONSTRAINT fk_requester \
         FOREIGN KEY(requester) \
+            REFERENCES users(userid), \
+    CONSTRAINT fk_groups \
+        FOREIGN KEY(groupid) \
+            REFERENCES groups(groupid) \
+);"
+
+psql -U cfadmin -d cartoforum -c "CREATE TABLE mapobjects ( \
+    gid serial PRIMARY KEY, \
+    geom geometry(GEOMETRYCOLLECTION, 3857), \
+    userid INT, \
+    groupid INT, \
+    date TIMESTAMP, \
+    CONSTRAINT fk_users \
+        FOREIGN KEY(userid) \
             REFERENCES users(userid), \
     CONSTRAINT fk_groups \
         FOREIGN KEY(groupid) \

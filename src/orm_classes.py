@@ -7,7 +7,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.orm import sessionmaker
 import config
 
-db_string = "postgres://{}:{}@localhost:5432/{}".format(config.dbusername,config.dbpassword,config.dbname)
+db_string = "postgresql://{}:{}@pg.cf.net:5432/{}".format(config.dbusername,config.dbpassword,config.dbname)
 db = create_engine(db_string)
 base = declarative_base()
 

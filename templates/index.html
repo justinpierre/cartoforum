@@ -41,10 +41,8 @@
             <form id = "twittersignin" action = "/twitter-oauth" method = "POST">
 
             </form>
-                <a href={{ url_for('oauth_authorize', provider='google') }}>
-                <img src = "https://developers.google.com/accounts/images/sign-in-with-google.png" id = "googlesubmit">
-                </a>
-                <form id = "loginform" method = "POST" action = "/login">
+
+            <form id = "loginform" method = "POST" action = "/login">
                 <input type = "username" name = "username" placeholder = "username">
                 <input type = "password" name = "password" placeholder = "password">
                 <br>

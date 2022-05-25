@@ -29,6 +29,8 @@ RUN wget -P ${HOME} https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-
     ${INSTALLS}/miniconda3/bin/conda install -y psycopg2 && \    
     ${INSTALLS}/miniconda3/bin/conda install -y paramiko && \
     ${INSTALLS}/miniconda3/bin/conda install -y sqlalchemy && \
+    ${INSTALLS}/miniconda3/bin/conda install -y flask && \
+    ${INSTALLS}/miniconda3/bin/conda install -y -c conda-forge flask-mail && \
     ${INSTALLS}/miniconda3/bin/conda install -y pandas && \
     ${INSTALLS}/miniconda3/bin/conda clean -a
 

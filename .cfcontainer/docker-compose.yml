@@ -25,5 +25,17 @@ services:
     depends_on:
       - cf_db
     volumes: 
-    - "../:/cf"
-    
+    - "../:/cartoforum"
+  
+  geos:
+    container_name: cf_geos
+    hostname: geos.cf.net
+    build:
+      context: .
+      dockerfile: ./geos.Dockerfile
+    ports:
+    - "8080:8080" 
+    environment:
+      GEOSERVER_HOME: /usr/share/geoserver
+    volumes: 
+    - "data_dir:/usr/share/geoserver"    

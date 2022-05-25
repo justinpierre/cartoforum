@@ -1,30 +1,25 @@
+import os
+import sys
+sys.path.append(os.getenv('cf'))
 from flask import session, render_template, request, jsonify
-from orm_classes import sess, Users, Post, Votes
+from .. orm_classes import sess, Users, Post, Votes
 
-from app import cfapp, cur, pgconnect
+from src.core import cur, pgconnect
+from app import cfapp
 import datetime
-import urlparse
+from urllib.parse import urlparse
 
 
-@cfapp.route('/_save_object', methods=['GET'])
-def save_object():
-    geom = request.args.get('jsonshp', 0, type=str)
-    geom = urlparse.unquote(geom)
-    query = cur.execute("SELECT count(*) FROM mapobjects where geom = ST_GeomFromText('{}',3857) AND userid = {} and "
-                        "date > (now() - INTERVAL '2 MINUTE');".format(geom, session["userid"]))
-    response = cur.fetchall()
-    for row in response:
-        if row[0] > 0:
-            return None
 
+def save_object(geom, userid, groupid):
     cur.execute("INSERT INTO mapobjects (geom, groupid, userid, date) VALUES (ST_GeomFromText('{}',3857), {}, {}, "
-                "'{}');".format(geom, session['groupid'], session['userid'], datetime.datetime.utcnow()))
+                "'{}');".format(geom, groupid, userid, datetime.datetime.utcnow()))
     pgconnect.commit()
     query = cur.execute("SELECT objectid FROM mapobjects WHERE userid = {0} AND date = (SELECT max(date) "
-                        "FROM mapobjects WHERE userid = {0});".format(session["userid"]))
+                        "FROM mapobjects WHERE userid = {0});".format(userid))
     response = cur.fetchall()
     for row in response:
-        return jsonify(objid=row[0])
+        return row[0]
 
 
 @cfapp.route('/_zoom_to', methods=['GET'])

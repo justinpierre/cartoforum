@@ -1,1 +1,4 @@
 config.py
+.cfcontainer/data_dir/
+*.pyc
+.vscode/

@@ -1,14 +1,17 @@
 # -*- coding: utf8 -*-
 
-__author__ = u'justinpierre'
+__author__ = 'justinpierre'
 
-from flask import Flask
+from flask import Flask, jsonify
 from flask import render_template, request, session
 from flask_mail import Mail
 
-import psycopg2
+
 import config
-from orm_classes import Users, Group, sess, UsersGroups
+import src
+from src.orm_classes import Users, Group, sess, UsersGroups
+from src.group_mgmt import cf_groups
+from src.account_mgmt import logins
 
 
 cfapp = Flask(__name__)
@@ -27,19 +30,6 @@ mail = Mail(cfapp)
 
 cfapp.secret_key = config.secret_key
 cfapp.config['SESSION_TYPE'] = 'filesystem'
-
-try:
-    pgconnect = psycopg2.connect(database=config.dbname, user=config.dbusername,
-                                 password=config.dbpassword, host='localhost', port=config.dbport)
-except:
-    print("no connection")
-
-cur = pgconnect.cursor()
-
-from account_mgmt import logins, invites, twitter, google, account
-from group_mgmt import cf_groups
-from cf_map import forum, carto
-
 
 @cfapp.route('/')
 def index():
@@ -60,5 +50,36 @@ def go_to_admin():
         return index()
 
 
+@cfapp.route('/createGroup', methods=['GET'])
+def create_group():
+    groupname = request.args.get('groupname')
+    bounds = request.args.get('bounds')
+    
+    opengroup = 'false'
+    if request.args.get('opengroup') == 'on':
+        opengroup = 'true'
+    resp = cf_groups.create_group(groupname=groupname, bounds=bounds,opengroup=opengroup,userid=session['userid'])
+    return jsonify(resp)
+
+@cfapp.route('/create_account', methods=['POST'])
+def create_account():
+    username = request.form['username']
+    email = request.form['email']
+    if email in ['email address', '']:
+        email = None
+    password = request.form['password']
+    create = logins.create_account(username=username, email=email, password=password)
+    if create:
+        return render_template('index.html', account='created')
+    else:
+        return render_template(email)
+
+@cfapp.route('/save_object', methods=['POST'])
+def save_object():
+    geom = request.args.get('jsonshp', 0, type=str)
+    geom = urlparse.unquote(geom)
+    oid = src.cf_map.carto.save_object(geom)
+    return jsonify(objid=oid, userid=session['userid'], groupid=session['groupid'])
+
 if __name__ == '__main__':
-    cfapp.run()
+    cfapp.run(debug=True)
