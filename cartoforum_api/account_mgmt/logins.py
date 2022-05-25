@@ -1,28 +1,13 @@
 import os
 import sys
 sys.path.append(os.getenv('cf'))
-from src.orm_classes import sess
+from cartoforum_api.orm_classes import sess
 from flask import session, render_template, request, jsonify
 from flask_mail import Message
-from src.orm_classes import Users, PasswordReset
-from app import cfapp
+from cartoforum_api.orm_classes import Users, PasswordReset
 import hashlib
 import datetime
 
-
-
-@cfapp.route('/login', methods=['POST'])
-def do_login():
-    for u in sess.query(Users).filter_by(username=request.form['username']):
-        m = hashlib.sha256()
-        m.update(request.form['password'].encode("utf-8"))
-        hashpwd = m.hexdigest()
-        if u.password.strip() == hashpwd or u.password.strip() == hashpwd[0:59]:
-            session['logged_in'] = True
-            session['userid'] = u.userid
-        else:
-            return render_template('index.html', login='failed')
-    # return app.index()
 
 
 # @cfapp.route('/groupselect', methods=['POST'])
@@ -100,11 +85,3 @@ def reset_password():
     if userid > 0:
         return render_template('passwordreset.html', userid=userid)
 
-# @cfapp.route('/_check_username', methods=['GET'])
-def check_username():
-    requestedname = request.args.get('name')
-    taken = sess.query(Users).filter_by(username=requestedname).count()
-    if taken > 0:
-        return jsonify({requestedname: 'taken'})
-    else:
-        return jsonify({requestedname: 'ok'})

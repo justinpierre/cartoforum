@@ -1,11 +1,15 @@
+import os
+import sys
+sys.path.append(os.getenv('cf'))
+
 import datetime
-from orm_classes import sess
+from cartoforum_api.orm_classes import sess
 from flask import session, render_template, request, jsonify
-from orm_classes import GroupRequests, Group, Users, UsersGroups, InviteMe
-from app import cfapp, cur, pgconnect
+from cartoforum_api.orm_classes import GroupRequests, Group, Users, UsersGroups, InviteMe
+from cartoforum_api.core import cur, pgconnect
 
 
-@cfapp.route('/invite_user', methods=['GET'])
+# @cfapp.route('/invite_user', methods=['GET'])
 def invite_user():
     invitee = request.args.get('invitee', type=str)
     try:
@@ -26,10 +30,9 @@ def invite_user():
     return jsonify(response='invite sent')
 
 
-@cfapp.route('/_get_user_invites', methods=['GET'])
-def get_user_invites():
+def get_user_invites(userid):
     invreq = {'invites': [], 'requests': []}
-    for gr, g, u in sess.query(GroupRequests, Group, Users).filter_by(invitee=session['userid']).\
+    for gr, g, u in sess.query(GroupRequests, Group, Users).filter_by(invitee=userid).\
             filter_by(complete='f').join(Group).join(Users):
         invreq['requests'].append({"requestid": gr.requestid, "requester": u.username, "group": g.groupname,
                                    "date": gr.dateissued})
@@ -37,15 +40,16 @@ def get_user_invites():
     cur.execute("SELECT inviteme.requestid, users.username, groups.groupname, inviteme.date "
                 "FROM inviteme INNER JOIN users ON users.userid = inviteme.userid "
                 "JOIN groups ON groups.groupid = inviteme.groupid  "
-                "WHERE accepted is null AND groups.userid = '{}'".format(session['userid']))
+                "WHERE accepted is null AND groups.userid = '{}'".format(userid))
     response = cur.fetchall()
     for row in response:
         invreq['invites'].append({"requestid": row[0], "requester": row[1], "group": [2], "date": row[3]})
     pgconnect.commit()
-    return jsonify(invites=invreq)
+    return invreq
+    
 
 
-@cfapp.route('/manageRequest', methods=['POST'])
+# @cfapp.route('/manageRequest', methods=['POST'])
 def manage_request():
     requestid = request.form['requestid']
     action = request.form['submit']
@@ -60,7 +64,7 @@ def manage_request():
     return render_template('groupselect.html')
 
 
-@cfapp.route('/manageInvite', methods=['POST'])
+# @cfapp.route('/manageInvite', methods=['POST'])
 def accept_invite():
     requestid = request.form['requestid']
     action = request.form['submit']
@@ -76,7 +80,7 @@ def accept_invite():
     return render_template('groupselect.html')
 
 
-@cfapp.route('/request_invite', methods=['POST'])
+# @cfapp.route('/request_invite', methods=['POST'])
 def request_invite():
     gid = request.form['gid']
     newinvite = InviteMe(userid=session['userid'], groupid=gid, date=datetime.datetime.utcnow())

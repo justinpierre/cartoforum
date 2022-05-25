@@ -1,3 +1,6 @@
+import os
+import sys
+sys.path.append(os.getenv('cf'))
 
 from sqlalchemy import create_engine
 from sqlalchemy import Column, String, Integer, Date, Boolean, ForeignKey, asc
@@ -5,7 +8,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import sessionmaker
-import config
+from cartoforum_api import config
 
 db_string = "postgresql://{}:{}@pg.cf.net:5432/{}".format(config.dbusername,config.dbpassword,config.dbname)
 db = create_engine(db_string)

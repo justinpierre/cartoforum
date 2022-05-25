@@ -21,7 +21,7 @@ from src.cf_map import carto
 import src
 
 
-class test_create_uesr(unittest.TestCase):
+class test_create_user(unittest.TestCase):
     def setUp(self):
         self.tearDown()
         

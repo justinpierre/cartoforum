@@ -1,15 +1,15 @@
-import os
-import sys
-sys.path.append(os.getenv('cf'))
 
-from src.orm_classes import sess
-from flask import session, render_template, request, jsonify
-from src.orm_classes import Group, Users, UsersGroups, Post, Thread, GroupRequests, InviteMe, Votes
-from src.core import pgconnect, cur
+
+from cartoforum_api.orm_classes import sess
+from flask import session, render_template, request, jsonify, Blueprint
+from cartoforum_api.orm_classes import Group, Users, UsersGroups, Post, Thread, GroupRequests, InviteMe, Votes
+from cartoforum_api.core import pgconnect, cur
+
 import datetime
 
+cf_groups = Blueprint('cf_groups', __name__)
 
-# @cfapp.route('/_get_user_groups', methods=['GET'])
+@cf_groups.route('/_get_user_groups', methods=['GET'])
 def get_user_groups():
     groups = []
     for g, u in sess.query(Group, UsersGroups).join(UsersGroups).filter_by(userid=session['userid']):
@@ -18,9 +18,10 @@ def get_user_groups():
         else:
             groups.append({"name": g.groupname, "groupid": g.groupid, "admin": "false"})
     return jsonify(groups=groups)
+    
 
 
-# @cfapp.route('/_get_group_users', methods=['GET'])
+@cf_groups.route('/_get_group_users', methods=['GET'])
 def get_group_users():
     users = []
     for u, ug in sess.query(Users, UsersGroups).join(UsersGroups).filter_by(groupid=session['groupid']):
@@ -28,7 +29,13 @@ def get_group_users():
     return jsonify(users=users)
 
 
-def create_group(**kwargs):
+@cf_groups.route('/createGroup', methods=['GET'])
+def create_group():
+    groupname = request.args.get('groupname')
+    bounds = request.args.get('bounds')
+    opengroup = 'false'
+    if request.args.get('opengroup') == 'on':
+        opengroup = 'true'
     bounds_arr = kwargs['bounds'].split(" ")
     cur.execute("SELECT count(*) from groups where groupname = '{}' and userid = {} and bounds = '{}'"
                 .format(kwargs['groupname'], kwargs['userid'], kwargs['bounds']))
@@ -46,10 +53,10 @@ def create_group(**kwargs):
         groupid = row[0]
     cur.execute("INSERT INTO usersgroups VALUES ({},{})".format(kwargs['userid'], groupid))
     pgconnect.commit()
-    return groupid
+    return jsonify(groupid)
 
 
-# @cfapp.route('/delete_group', methods=['POST'])
+@cf_groups.route('/delete_group', methods=['POST'])
 def delete_group():
     cur.execute("Delete from mapobjects where groupid = {}".format(session['groupid']))
     pgconnect.commit()
@@ -59,7 +66,7 @@ def delete_group():
     username = sess.query(Users).filter_by(userid=session['userid']).one().username
     return render_template('groupselect.html', username=username)
 
-# @cfapp.route('/_add_geojson', methods=['POST'])
+@cf_groups.route('/_add_geojson', methods=['POST'])
 def add_geojson():
     json = urlparse.unquote(request.form['geojson'])
 
@@ -71,7 +78,7 @@ def add_geojson():
     pgconnect.commit()
     return jsonify('success')
 
-# @cfapp.route('/quit_group', methods=['POST'])
+@cf_groups.route('/quit_group', methods=['POST'])
 def quit_group():
     groupid = request.form['groupid']
     uid = sess.query(UsersGroups).filter_by(groupid=groupid).filter_by(userid=session['userid']).count()

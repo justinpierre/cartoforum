@@ -1,22 +1,28 @@
 # -*- coding: utf8 -*-
 
 __author__ = 'justinpierre'
+import os
+import sys
+sys.path.append(os.getenv('cf'))
 
-from flask import Flask, jsonify
-from flask import render_template, request, session
+from flask import render_template, request, session, Flask, jsonify
 from flask_mail import Mail
-
-
+import hashlib
 import config
-import src
-from src.orm_classes import Users, Group, sess, UsersGroups
-from src.group_mgmt import cf_groups
-from src.account_mgmt import logins
+from orm_classes import Users, Group, sess, UsersGroups
+from group_mgmt.cf_groups import cf_groups
+from account_mgmt import logins, invites
+from cf_map.carto import carto
+from cf_map.forum import forum
+
 
 
 cfapp = Flask(__name__)
-mail = Mail(cfapp)
+cfapp.register_blueprint(cf_groups)
+cfapp.register_blueprint(carto)
+cfapp.register_blueprint(forum)
 
+mail = Mail(cfapp)
 cfapp.config.update(
     DEBUG=True,
     MAIL_SERVER='smtp.gmail.com',
@@ -39,7 +45,6 @@ def index():
         username = sess.query(Users).filter_by(userid=session['userid']).one().username
         return render_template('groupselect.html', username=username)
 
-
 @cfapp.route('/admin', methods=['POST'])
 def go_to_admin():
     session['groupid'] = groupid = request.form['groupid']
@@ -48,18 +53,6 @@ def go_to_admin():
         return render_template("admin.html", groupid=groupid)
     else:
         return index()
-
-
-@cfapp.route('/createGroup', methods=['GET'])
-def create_group():
-    groupname = request.args.get('groupname')
-    bounds = request.args.get('bounds')
-    
-    opengroup = 'false'
-    if request.args.get('opengroup') == 'on':
-        opengroup = 'true'
-    resp = cf_groups.create_group(groupname=groupname, bounds=bounds,opengroup=opengroup,userid=session['userid'])
-    return jsonify(resp)
 
 @cfapp.route('/create_account', methods=['POST'])
 def create_account():
@@ -74,12 +67,34 @@ def create_account():
     else:
         return render_template(email)
 
-@cfapp.route('/save_object', methods=['POST'])
-def save_object():
-    geom = request.args.get('jsonshp', 0, type=str)
-    geom = urlparse.unquote(geom)
-    oid = src.cf_map.carto.save_object(geom)
-    return jsonify(objid=oid, userid=session['userid'], groupid=session['groupid'])
+
+@cfapp.route('/_check_username', methods=['GET'])
+def check_username():
+    requestedname = request.args.get('name')
+    taken = sess.query(Users).filter_by(username=requestedname).count()
+    if taken > 0:
+        return jsonify({requestedname: 'taken'})
+    else:
+        return jsonify({requestedname: 'ok'})
+
+@cfapp.route('/login', methods=['POST'])
+def do_login():
+    for u in sess.query(Users).filter_by(username=request.form['username']):
+        m = hashlib.sha256()
+        m.update(request.form['password'].encode("utf-8"))
+        hashpwd = m.hexdigest()
+        if u.password.strip() == hashpwd or u.password.strip() == hashpwd[0:59]:
+            session['logged_in'] = True
+            session['userid'] = u.userid
+        else:
+            return render_template('index.html', login='failed')
+    return index()
+
+@cfapp.route('/_get_user_invites', methods=['GET'])
+def get_user_invites():
+    invreq = invites.get_user_invites(session['userid'])
+    return jsonify(invites=invreq)
+
 
 if __name__ == '__main__':
     cfapp.run(debug=True)

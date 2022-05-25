@@ -83,8 +83,8 @@ dark = new ol.layer.Tile({
   });
 
 groupobjectssrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-url: 'https://cartoforum.com:8443/geoserver/wms',
-                params: {'LAYERS': 'Argoomap_postgis:groupobjects', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid},
+url: 'http://localhost:8080/geoserver/cite/wms',
+                params: {'LAYERS': 'cite:mapobjects', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'gid:'+groupid},
 		serverType: 'geoserver'
 	     }));
 
@@ -129,7 +129,7 @@ map.on('singleclick', function(e) {
 	}
   var viewResolution = /** @type {number} */ (map.getView().getResolution());
   var url = groupobjectssrc.getGetFeatureInfoUrl( e.coordinate, viewResolution, 'EPSG:3857', {'INFO_FORMAT': 'text/html'});
-  url = "https://cartoforum.com" + url.substring(22);
+  url = "https://localhost" + url.substring(22);
   url+="&FEATURE_COUNT=15";
   url="/_discovery_popup?url="+encodeURIComponent(url);
 
@@ -200,7 +200,7 @@ $('#filter-by-thread').change(function(){
        }
        });
      threadsrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-     url: 'https://cartoforum.com:8443/geoserver/wms',
+     url: 'http://localhost:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:threadview', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'groupid:'+groupid+';threadid:'+threadid},
 		serverType: 'geoserver'
 	     }));
@@ -501,7 +501,7 @@ function highlightObject(postid, objid) {
     if (selectedObjectSrc) selectedobject.setSource();
     if (objid) {
       selectedObjectSrc = new ol.source.TileWMS(/** @type {olx.source.TileWMSOptions} */ ({
-      url: 'https://cartoforum.com:8443/geoserver/wms',
+      url: 'http://localhost:8080/geoserver/wms',
                 params: {'LAYERS': 'Argoomap_postgis:SelectedFeatures', 'TRANSPARENT': true, 'TILED': false, 'viewparams': 'objid:'+objid},
 		serverType: 'geoserver'
 	     }));

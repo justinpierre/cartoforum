@@ -1,14 +1,20 @@
-from orm_classes import sess
-from flask import session, request, jsonify
-from orm_classes import Users, UsersGroups, Post, Thread, Votes
-from app import cfapp, cur, pgconnect
+import os
+import sys
+sys.path.append(os.getenv('cf'))
+
+from cartoforum_api.orm_classes import sess
+from flask import session, request, jsonify, Blueprint
+from cartoforum_api.orm_classes import Users, UsersGroups, Post, Thread, Votes
+
 import sqlalchemy
 import datetime
 import re
 from sqlalchemy import asc
 from . import carto
 
-@cfapp.route('/_get_group_threads', methods=['GET'])
+forum = Blueprint('forum', __name__)
+
+@forum.route('/_get_group_threads', methods=['GET'])
 def get_group_threads():
     groupid = session['groupid']
     threads = []
@@ -17,7 +23,7 @@ def get_group_threads():
     return jsonify(threads=threads)
 
 
-@cfapp.route('/_get_thread_posts', methods=['GET'])
+@forum.route('/_get_thread_posts', methods=['GET'])
 def get_thread_posts():
     userid = session['userid'] if 'userid' in session else 0
     threads = []
@@ -36,7 +42,7 @@ def get_thread_posts():
     return jsonify(threads=threads)
 
 
-@cfapp.route('/_recent_posts', methods=['GET'])
+@forum.route('/_recent_posts', methods=['GET'])
 def recent_posts():
     userid = session['userid'] if 'userid' in session else 0
     posts = []
@@ -54,7 +60,7 @@ def recent_posts():
     return jsonify(posts=posts)
 
 
-@cfapp.route('/_user_posts', methods=['GET'])
+@forum.route('/_user_posts', methods=['GET'])
 def user_posts():
     vtotal = voted = None
     userid = request.args.get('userid', 0, type=str)
@@ -71,7 +77,7 @@ def user_posts():
     return jsonify(posts=posts)
 
 
-@cfapp.route('/_posts_by_extent', methods=['GET'])
+@forum.route('/_posts_by_extent', methods=['GET'])
 def posts_by_extent():
     posts = []
     extent = request.args.get('ext', 0, type=str)
@@ -95,7 +101,7 @@ def posts_by_extent():
     return jsonify(posts=posts)
 
 
-@cfapp.route('/_delete_post', methods=['GET'])
+@forum.route('/_delete_post', methods=['GET'])
 def delete_post():
     postid = request.args.get('postid', 0, type=int)
     is_this_my_post = sess.query(Post).filter_by(userid=session['userid']).filter_by(postid=postid).one()
@@ -117,7 +123,7 @@ def delete_post():
     return jsonify('success')
 
 
-@cfapp.route('/_save_post', methods=['POST'])
+@forum.route('/_save_post', methods=['POST'])
 def save_post():
     threadid = request.form['threadid']
     replyID = request.form['replyID']
@@ -142,7 +148,7 @@ def save_post():
     return jsonify("success")
 
 
-@cfapp.route('/_cast_vote', methods=['GET'])
+@forum.route('/_cast_vote', methods=['GET'])
 def cast_vote():
     post = request.args.get('post', 0, type=int)
     vote = request.args.get('vote', 0, type=int)
@@ -159,7 +165,7 @@ def cast_vote():
     score_ind = carto.update_object_stats(oid)
     return jsonify(score_ind)
 
-@cfapp.route('/_save_thread', methods=['GET'])
+@forum.route('/_save_thread', methods=['GET'])
 def save_thread():
     nick = request.args.get('nick', 0, type=str)
     name = request.args.get('name', 0, type=str)
@@ -179,7 +185,7 @@ def save_thread():
         return jsonify("something went wrong")
 
 
-@cfapp.route('/_get_post', methods=['GET'])
+@forum.route('/_get_post', methods=['GET'])
 def get_post():
     handled_postids = []
     thread_data = {}
@@ -279,7 +285,7 @@ def get_post():
     return jsonify(data=thread_data)
 
 
-@cfapp.route('/_search_posts', methods=['GET'])
+@forum.route('/_search_posts', methods=['GET'])
 def search_posts():
     userid = session['userid'] if 'userid' in session else 0
     posts = []
